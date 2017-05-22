@@ -1,7 +1,8 @@
 package rocks.theatomicoption.CropBiomeLimiter;
 
 import net.minecraft.block.Block;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.block.BlockCrops;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.event.entity.player.BonemealEvent;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.fml.common.FMLLog;
@@ -9,12 +10,11 @@ import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-import rocks.theatomicoption.CropBiomeLimiter.CropBiomeLogic;
-
 import static rocks.theatomicoption.CropBiomeLimiter.CropBiomeLimiter.config;
 
 /**
- * TODO: extract some of this logic into a separate class.
+ * TO do: extract some of this logic into a separate class.
+ *
  */
 public class CropGrowthEventHandler {
 
@@ -25,128 +25,83 @@ public class CropGrowthEventHandler {
     public void onCropGrowEvent(BlockEvent.CropGrowEvent.Pre event) {
         if(event.getWorld().isRemote){ return; } // run only on logical server
 
-        if (config.isBlacklistDim) {
-            if (config.isListedDimension(event.getWorld().provider.getDimension())) {
-                return;
-            }
-        } else {
-            if (!config.isListedDimension((event.getWorld().provider.getDimension()))) {
-                return;
-            }
-        }
 
-
-        float biomeTemp = event.getWorld().getBiome(event.getPos()).getTemperature();
-        float biomeRain = event.getWorld().getBiome(event.getPos()).getRainfall();
-        Biome biome = event.getWorld().getBiome(event.getPos());
         Block block = event.getState().getBlock();
-        boolean resultFound = false;
+        boolean canGrow = false;
 
-        //FMLLog.info(event.getWorld().getBiome(blockPos).getBiomeName());
+        canGrow = CropBiomeLogic.canGrowExplicit(event.getWorld(),event.getPos());
 
-
-        if (config.isBlacklistBiome) {
-            //FMLLog.info("Config set for Whitelist by biomeType, blacklist subtract by biome");
-            if (config.isListedCropBiomeType(block, biome)) {
-                //FMLLog.info("crop found in biomeType whitelist");
-                event.setResult(Event.Result.DEFAULT);
-                resultFound = true;
-            }
-            if (config.isListedCropBiome(block, biome)) {
-                //FMLLog.info("crop %s is blacklisted in biome %s", block.getRegistryName().toString(), biome.getBiomeName());
-                event.setResult(Event.Result.DENY);
-                resultFound = true;
-            }
-            if (!resultFound) {
-                event.setResult(Event.Result.DENY);
-            }
-        } else {
-            //FMLLog.info("Config set for Blacklist by biomeType, Whitelist subtract by biome");
-            if (config.isListedCropBiomeType(block, biome)) {
-                //FMLLog.info("crop found in biomeType blacklist");
-                event.setResult(Event.Result.DENY);
-                resultFound = true;
-            }
-            if (config.isListedCropBiome(event.getState().getBlock(), biome)) {
-                //FMLLog.info("Can grow crop %s because it's whitelisted in biome %s", block.getRegistryName().toString(), biome.getBiomeName());
-                event.setResult(Event.Result.DEFAULT);
-                resultFound = true;
-            }
-            if (!resultFound) {
-                event.setResult(Event.Result.DEFAULT);
-            }
+        if(canGrow){
+            event.setResult(Event.Result.DEFAULT);
+            FMLLog.info("canGrow true");
         }
-
+        else {
+            event.setResult(Event.Result.DENY);
+            FMLLog.info("canGrow false");
+        }
 
     }
-
 
     /**
      *
      * Determines what happens when player uses bonemeal on a plant.
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void onBonemealEvent(BonemealEvent event)
-    {
+    public void onBonemealEvent(BonemealEvent event) {
         if (event.getWorld().isRemote) { return; } // run only on logical server. something something do this with SideProxy instead because reasons?
+        if (!config.affectsBonemeal) {return;}
 
+        boolean canGrow = CropBiomeLogic.canGrowExplicit(event.getWorld(),event.getPos());
 
-        if (config.isBlacklistDim) {
-            if (config.isListedDimension(event.getWorld().provider.getDimension())) {
-                return;
+        if(canGrow){
+            event.setResult(Event.Result.DEFAULT);
+            //FMLLog.info("canGrow bonemeal true");
+        }
+        else {
+            event.setResult(Event.Result.ALLOW);
+            if(config.chatInfo) {
+                event.getEntityPlayer().addChatComponentMessage(new TextComponentString("This plant can't grow in this climate."));
             }
-        } else {
-            if (!config.isListedDimension((event.getWorld().provider.getDimension()))) {
-                return;
-            }
+            //FMLLog.info("canGrow bonemeal false");
         }
 
+    }
 
-        float biomeTemp = event.getWorld().getBiome(event.getPos()).getTemperature();
-        float biomeRain = event.getWorld().getBiome(event.getPos()).getRainfall();
-        Biome biome = event.getWorld().getBiome(event.getPos());
-        Block block = event.getBlock().getBlock();
-        boolean resultFound = false;
-
-        //FMLLog.info(event.getWorld().getBiome(blockPos).getBiomeName());
-/*        //Debug: spam Forge info window with list of biomes from the visit biomes achievement when bonemeal is used
-        for(Biome b : Biome.EXPLORATION_BIOMES_LIST) {
-            FMLLog.info("%s is of TempCategory %s, with temperature %f and rainfall %f",b.getBiomeName(),b.getTempCategory(),b.getTemperature(),b.getRainfall());
-        }
-*/
+    /**
+     *
+     * Activates when Crop block is planted.
+     */
+    @SubscribeEvent
+    public void onPlantCrop(BlockEvent.PlaceEvent event) {
+        if (event.getWorld().isRemote) { return; } // run only on logical server. something something do this with SideProxy instead because reasons?
+        if(!config.affectsBlockPlacement) { return; }
 
 
+        //Doesn't appear to exactly be a flag for whether something is a crop...
+        //if the block is part of or extends the BlockCrops class, assume it's a crop.
+        // not sure how reliable this actually is, but it seems to work in limited testing.
+        // FMLLog.info("testing if block placed extends class blockcrops:");
+        if(!BlockCrops.class.isAssignableFrom(event.getPlacedBlock().getBlock().getClass())) {
+            //FMLLog.info("class was " + event.getPlacedBlock().getBlock().getClass().getName());
+            //FMLLog.info("superclass was " + event.getPlacedBlock().getBlock().getClass().getSuperclass().getName());
+            return; }
+        else {
 
-        if (config.isBlacklistBiome) {
-            //FMLLog.info("Config set for Whitelist by biomeType, blacklist subtract by biome");
-            if (config.isListedCropBiomeType(block, biome)) {
-                //FMLLog.info("crop found in biomeType whitelist");
-                event.setResult(Event.Result.DEFAULT);
-                resultFound = true;
+            boolean canGrow = CropBiomeLogic.canGrowExplicit(event.getWorld(),event.getPos());
+            if(!canGrow){
+                //If the BlockCrop can't grow here, prevent placing it.
+                FMLLog.info("canGrow false. Cancelling block placement.");
+                if(config.chatInfo) {
+                    event.getPlayer().addChatComponentMessage(new TextComponentString("This plant can't grow in this climate."));
+                }
+                event.setCanceled(true);
+                //FMLLog.info("canGrow bonemeal true");
             }
-            if (config.isListedCropBiome(block, biome)) {
-                //FMLLog.info("crop %s is blacklisted in biome %s", block.getRegistryName().toString(), biome.getBiomeName());
-                event.setResult(Event.Result.ALLOW); //"ALLOW" uses a bonemeal but doesn't grow crop.
-                resultFound = true;
+            else{
+                //FMLLog.info("can grow true");
             }
-            if (!resultFound) {
-                event.setResult(Event.Result.ALLOW);
-            }
-        } else {
-            //FMLLog.info("Config set for Blacklist by biomeType, Whitelist subtract by biome");
-            if (config.isListedCropBiomeType(block, biome)) {
-                //FMLLog.info("crop found in biomeType blacklist");
-                event.setResult(Event.Result.ALLOW); //"ALLOW" uses a bonemeal but doesn't grow crop.
-                resultFound = true;
-            }
-            if (config.isListedCropBiome(event.getBlock().getBlock(), biome)) {
-                //FMLLog.info("Can grow crop %s because it's whitelisted in biome %s", block.getRegistryName().toString(), biome.getBiomeName());
-                event.setResult(Event.Result.DEFAULT);
-                resultFound = true;
-            }
-            if (!resultFound) {
-                event.setResult(Event.Result.DEFAULT);
-            }
+
         }
     }
+
 }

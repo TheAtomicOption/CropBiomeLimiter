@@ -2,7 +2,7 @@
 {
   "modid": "cropbiomelimiter",
   "name": "CropBiomeLimiter",
-  "description": "Customizes how crops are affected by biomes",
+  "description": "Customizes whether crops can grow in specific biomes or biome types.",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",
@@ -11,6 +11,8 @@
   "credits": "Everyone whose tutorials I read",
   "logoFile": "",
   "screenshots": [],
-  "dependencies": []
+  "requiredMods": ["Forge"],
+  "dependencies": ["harvestcraft"],
+  "useDependencyInformation": true
 }
 ]
