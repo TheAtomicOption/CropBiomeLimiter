@@ -26,7 +26,14 @@ public class CropBiomeLimiter {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         System.out.println(name + " is loading!");
+
+        String configpath = event.getSuggestedConfigurationFile().getPath() + "/CropBiomeLimiter/";
+
+
+
+
         config = new ConfigHandler(new Configuration(event.getSuggestedConfigurationFile()));
+
     }
 
     @Mod.EventHandler
@@ -35,6 +42,7 @@ public class CropBiomeLimiter {
     }
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
+        config.biomeGroupDefValidation();
 
     }
 }

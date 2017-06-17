@@ -1,13 +1,13 @@
 package rocks.theatomicoption.CropBiomeLimiter;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import net.minecraft.block.Block;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.common.config.Configuration;
 
 import net.minecraftforge.fml.common.FMLLog;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 /**
  *
@@ -16,8 +16,8 @@ public class ConfigHandler {
 
     private final Configuration config;
 
-    private static final String CATEGORY_BIOME_TYPES = "biome types";
-    private static final String CATEGORY_BIOME = "biomes";
+    private static final String CATEGORY_BIOME_TYPES = "Biome Types";
+    private static final String CATEGORY_BIOME = "Biomes";
 
     // Defaults
     private static final boolean defaultisBlacklistBiome = true;
@@ -28,18 +28,28 @@ public class ConfigHandler {
 
     private static final int[] defaultDimensionList = new int[]{};
 
-    private static final String[] defaultFarmland = new String[]{"minecraft:farmland"};
+    //Default Biome Group Definitions
+    private static final String[] defaultTemperate = new String[]{".25","0.8","0.01","1.0"};
+    private static final String[] defaultTropic = new String[]{".801","2.0","0.01","1.0"};
+    private static final String[] defaultDesert = new String[]{"1.0","2.0","0.0","0.0"};
+    private static final String[] defaultCold = new String[]{"-1.0",".249","0.0","1.0"};
 
-    private static final String[] defaultColdCrops = new String[]{"minecraft:wheat","minecraft:potatoes","minecraft:pumpkin_stem","minecraft:pumpkin",
+    //private static final String[] defaultFarmland = new String[]{"minecraft:farmland"};
+
+    private static final String[] defaultColdCrops = new String[]{
+            "minecraft:wheat","minecraft:potatoes","minecraft:pumpkin_stem","minecraft:pumpkin",
             "minecraft:grass","minecraft:sapling"};
-    private static final String[] defaultDryCrops = new String[]{"minecraft:cactus","minecraft:beetroots","minecraft:melon",
+    private static final String[] defaultDesertCrops = new String[]{"minecraft:cactus","minecraft:beetroots","minecraft:melon",
             "minecraft:grass","minecraft:sapling"};
-    private static final String[] defaultLushCrops = new String[]{"minecraft:wheat","minecraft:potatoes","minecraft:carrots","minecraft:beetroots",
-            "minecraft:melon","minecraft:melon_stem","minecraft:pumpkin_stem","minecraft:pumpkin","minecraft:cocoa",
+    private static final String[] defaultTemperateCrops = new String[]{"minecraft:wheat","minecraft:potatoes","minecraft:carrots","minecraft:beetroots",
+            "minecraft:melon","minecraft:melon_stem","minecraft:pumpkin_stem","minecraft:pumpkin","minecraft:cocoa","minecraft:reed",
+            "minecraft:grass","minecraft:sapling","minecraft:brown_mushroom","minecraft:red_mushroom"};
+    private static final String[] defaultTropicCrops = new String[]{"minecraft:wheat","minecraft:beetroots",
+            "minecraft:melon","minecraft:melon_stem","minecraft:cocoa","minecraft:reed",
             "minecraft:grass","minecraft:sapling","minecraft:brown_mushroom","minecraft:red_mushroom"};
 
     private static final String[] defaultBiome = new String[]{};
-    private static final String[] defaultExclusions = new String[]{};
+    private static final String[] defaultEmptyStringArray = new String[]{};
 
     // Config
     public boolean isBlacklistBiome = true;
@@ -56,8 +66,7 @@ public class ConfigHandler {
     private final Map<String, String[]> biomeConfig = new HashMap<String, String[]>();
     private final Map<String, String[]> biomeTypeConfig = new HashMap<String, String[]>();
 
-
-
+    private List<BiomeGroup> biomeGroups = new ArrayList<BiomeGroup>();
 
     public ConfigHandler(Configuration config){
         this.config = config;
@@ -70,42 +79,42 @@ public class ConfigHandler {
             // loads config from disk
             config.load();
 
-
-            exclusions = config.getStringList("Excluded Blocks","General",defaultExclusions,
-                    "List of specific blocks to exclude from ability-to-grow logic in. Available in case this mod conflicts with something." );
-            affectsBonemeal = config.getBoolean("Affects Bonemeal","General",defaultAffectsBonemeal,
-                    "If true, crops which can't grow also can't be forced to grow with bonemeal." );
-            affectsBlockPlacement = config.getBoolean("Affects Block Placement","General",defaultAffectsBlockPlacement,
-                    "If true, crops which can't grow are also blocked from being planted. This may be the only way to stop crops added by " +
-                            "mods which override or don't properly implement the Forge event CropGrowEvent.Pre" );
-            farmBlocks = config.getStringList("Farm Blocks","General",defaultFarmland,
-                    "Only things that grow on farm blocks will be affected by this mod.");
-            chatInfo = config.getBoolean("Info about failed planting to chat","General",defaultChatInfo,
-                    "If true, players are informed in chat when they attempt to place a block in a disallowed biome.");
-
-            isBlacklistBiome = config.getBoolean("isBlacklistBiome","General",defaultisBlacklistDim,
-                    "If true, Dimension list is a blacklist and this mod will not affect the ability of crops to grow in listed dimensions. " +
-                            "If false only crops in listed dimensions will have their ability to grow affected by limits in this mod.");
-            dimensionList = config.get("General","Dimensions",defaultDimensionList,"list of dimensions for Dimension whitelist/blacklist").getIntList();
-
-            initBiomeList();
+            initGeneralOptions();
+            initBiomeTypeDef();
             initBiomeTypes();
+            initBiomeList();
 
         } catch (Exception e){
             //Failed Reading/writing, do nothing
         } finally {
-            //Save config if config has changed
+            //Save config if config has changed.
             if(config.hasChanged()){
                 config.save();
             }
         }
+
+    }
+    private void initGeneralOptions(){
+        exclusions = config.getStringList("Excluded Blocks","General", defaultEmptyStringArray,
+                "List of specific blocks to exclude from ability-to-grow logic in. Available in case this mod conflicts with something." );
+        affectsBonemeal = config.getBoolean("Affects Bonemeal","General",defaultAffectsBonemeal,
+                "If true, crops which can't grow also can't be forced to grow with bonemeal." );
+        affectsBlockPlacement = config.getBoolean("Affects Block Placement","General",defaultAffectsBlockPlacement,
+                "If true, crops which can't grow are also blocked from being planted. This may be the only way to stop crops\n added by " +
+                        "mods which override or don't properly implement the Forge event CropGrowEvent.Pre" );
+        chatInfo = config.getBoolean("Info about failed planting to chat","General",defaultChatInfo,
+                "If true, players are informed in chat when they attempt to place a block in a disallowed biome.");
+        isBlacklistBiome = config.getBoolean("isBlacklistBiome","General",defaultisBlacklistDim,
+                "If true, Dimension list is a blacklist and this mod will not affect the ability of crops to grow in listed dimensions. " +
+                        "\nIf false only crops in listed dimensions will have their ability to grow affected by limits in this mod.");
+        dimensionList = config.get("General","Dimensions",defaultDimensionList,"list of dimensions for Dimension whitelist/blacklist").getIntList();
     }
 
     private void initBiomeList(){
         //config.addCustomCategoryComment("","Crop/Biome list");
         isBlacklistBiome = config.getBoolean("isBlacklistBiome","General",defaultisBlacklistBiome,
                 "If true, crops/biome pairs determine where crops can't grow, and crop/BiomeTypes below determine " +
-                        "where crops can when not listed here. Otherwise the behavior of both is reversed.");
+                        "where crops can when not listed here. \nOtherwise the behavior of both is reversed.");
 
         //empty defaults
         biomeConfig.put("Biomes", config.getStringList("Savanna",CATEGORY_BIOME,defaultBiome,""));
@@ -117,23 +126,82 @@ public class ConfigHandler {
             String[] c = new String[]{};
             biomeConfig.put(b,config.getStringList(b, CATEGORY_BIOME, c,""));
             FMLLog.info("found biome list: " + b + " containing count of blocks: " + biomeConfig.get(b).length);
-
-        };
-
-
+        }
     }
 
     private void initBiomeTypes(){
         config.addCustomCategoryComment(CATEGORY_BIOME_TYPES,"Note that for both biome and biome type lists, you must also include the stem type for plants with stems." +
-                "Sapplings, grass, dirt and podzol are included so that using bonemeal on them continues to work.");
+                "\nSapplings and grass are included so that using bonemeal on them continues to work.");
         biomeTypeConfig.put("COLD", config.getStringList("Cold",CATEGORY_BIOME_TYPES,defaultColdCrops,"Note: minecraft wiki shows a 'snowy' type, but in the vanilla code those biomes are included in 'cold' type."));
-        biomeTypeConfig.put("MEDIUM", config.getStringList("Medium/Lush",CATEGORY_BIOME_TYPES,defaultLushCrops,"forest, plains, jungle etc."));
-        biomeTypeConfig.put("WARM", config.getStringList("Dry/Warm",CATEGORY_BIOME_TYPES,defaultDryCrops,"desert, savanna etc."));
+        biomeTypeConfig.put("MEDIUM", config.getStringList("Medium/Lush",CATEGORY_BIOME_TYPES, defaultTemperateCrops,"forest, plains, jungle etc."));
+        biomeTypeConfig.put("WARM", config.getStringList("Dry/Warm",CATEGORY_BIOME_TYPES, defaultDesertCrops,"desert, savanna etc."));
         //        gardenDropConfig.put("aridGarden", config.getStringList("aridGarden", "drops", new String[]{"harvestcraft:cactusfruitItem"}, ""));
+
+        //The above should all be replaced with customizable biome groupings. Temperature and Rainfall seem like good things to base on.
+
+    }
+
+    private void initBiomeTypeDef() {
+
+        String cat = "Biome Type Definitions";
+        config.addCustomCategoryComment(cat,"Each biome type definition must have these values, in this order, on new lines: " +
+                "\n minTemperature (0-2) \n maxTemperature (0-2) \n minRainfall(0-1) \n maxRainfall(0-1) \n" +
+                "Use the defaults for reference. Both min and max numbers evaluate biomes inclusively.");
+
+//        BiomeGroup defaultTemplate = new BiomeGroup();
+//        defaultTemplate.name = "TEMPERATE";
+//        defaultTemplate.minTemperature = .25f;
+//        defaultTemplate.maxTemperature = 1.0f;
+//        defaultTemplate.minRainfall = 0.1f;
+//        defaultTemplate.maxRainfall= 0.9f;
+
+        config.getStringList("TEMPERATE",cat,defaultTemperate,"List of BiomeType Definitions");
+        config.getStringList("TROPIC",cat,defaultTropic,"List of BiomeType Definitions");
+        config.getStringList("DESERT",cat,defaultDesert,"List of BiomeType Definitions");
+        config.getStringList("COLD",cat,defaultCold,"List of BiomeType Definitions");
+
+
+        for (String s: config.getCategory(cat).getValues().keySet() ) {
+            String a[] = config.getStringList(s,cat,defaultEmptyStringArray,"");
+
+            BiomeGroup b = new BiomeGroup(){};
+            try {
+                b.name = s;
+                b.minTemperature = Float.parseFloat(a[0]);
+                b.maxTemperature = Float.parseFloat(a[1]);
+                b.minRainfall = Float.parseFloat(a[2]);
+                b.maxRainfall = Float.parseFloat(a[3]);
+            }
+            catch (Exception err) {
+                FMLLog.warning(err.getLocalizedMessage() + " while parsing a BiomeGroup");
+                continue;
+            }
+            this.biomeGroups.add(b);
+            FMLLog.info(this.biomeGroups.get(0).name + " successfully added to BiomeGroup");
+        }
 
     }
 
 
+    public void biomeGroupDefValidation() {
+        boolean found = false;
+        FMLLog.info("count of biome groups: " + this.biomeGroups.size());
+        for (Biome biome : ForgeRegistries.BIOMES) {
+            found = false;
+            FMLLog.info("####testing biome "+ biome.getBiomeName() + " with " + biome.getTemperature() + " " + biome.getRainfall());
+            for(BiomeGroup biomeGroup : this.biomeGroups) {
+                FMLLog.info("##biomeGroup" + biomeGroup.name + " with " + biomeGroup.minTemperature + " " + biomeGroup.maxTemperature + " " + biomeGroup.minRainfall + " " + biomeGroup.maxRainfall);
+                if(biomeGroup.isBiomeOfGroup(biome)){
+                    found = true;
+                    FMLLog.info("the biome: " + biome.getBiomeName() + " fits into BiomeGroup: " + biomeGroup.name);
+                }
+            }
+            if(!found){
+                FMLLog.warning("the biome: " + biome.getBiomeName() + " did not fit into any Biome Group for crop growth.");
+            }
+        }
+
+    }
     /**
      *
      * returns true if dimension dim is listed in config file list of dimensions
@@ -194,6 +262,7 @@ public class ConfigHandler {
         }
         return false;
     }
+
     public boolean isExcludedBlock(Block block) {
         if(this.exclusions == null) {return false;}
 

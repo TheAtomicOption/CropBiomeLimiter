@@ -2,6 +2,7 @@ package rocks.theatomicoption.CropBiomeLimiter;
 
 import net.minecraft.block.Block;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.DimensionType;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fml.common.FMLLog;
@@ -31,13 +32,12 @@ public class CropBiomeLogic {
      */
     public static boolean canGrowExplicit(World world, BlockPos blockPos) {
 
-
-        boolean canGrow = false;
         Biome biome = world.getBiome(blockPos);
         Block block = world.getBlockState(blockPos).getBlock();
-        boolean resultFound = false;
 
-        if (config.isExcludedBlock(block)) {return true;}
+        return canGrowExplicit(biome, block, world.provider.getDimension());
+
+/*        if (config.isExcludedBlock(block)) {return true;}
 
         if (config.isBlacklistBiome) {
             //FMLLog.info("Config set for Whitelist by biomeType, blacklist subtract by biome");
@@ -79,7 +79,57 @@ public class CropBiomeLogic {
             }
         }
 
+        return canGrow;*/
+    }
+
+    public static boolean canGrowExplicit(Biome biome, Block block, int dimension) {
+        boolean canGrow = false;
+        boolean resultFound = false;
+
+        if (config.isExcludedBlock(block)) {return true;}
+
+        if (config.isBlacklistBiome) {
+            //FMLLog.info("Config set for Whitelist by biomeType, blacklist subtract by biome");
+            if (config.isListedCropBiomeType(block, biome)) {
+                //FMLLog.info("crop found in biomeType whitelist.");
+                canGrow = true;
+                resultFound = true;
+            }
+            if (config.isListedCropBiome(block, biome)) {
+                //FMLLog.info("Biometype is white listed, but crop %s is blacklisted in biome %s", block.getRegistryName().toString(), biome.getBiomeName());
+                canGrow = false; //"ALLOW" uses a bonemeal but doesn't grow crop.
+                resultFound = true;
+            }
+            if (!resultFound) { canGrow = false; } //crops not listed in this biomeType can't grow here.
+        } else {
+            //FMLLog.info("Config set for Blacklist by biomeType, Whitelist subtract by biome");
+            if (config.isListedCropBiomeType(block, biome)) {
+                //FMLLog.info("crop found in biomeType blacklist.");
+                canGrow = false; //"ALLOW" uses a bonemeal but doesn't grow crop.
+                resultFound = true;
+            }
+            if (config.isListedCropBiome(block, biome)) {
+                //FMLLog.info("Biome type is black listed, but can grow crop %s because it's whitelisted in biome %s", block.getRegistryName().toString(), biome.getBiomeName());
+                canGrow = true;
+                resultFound = true;
+            }
+            if (!resultFound) { canGrow = true; } //crops not listed in the black listed biomeType or whitelisted by biome can grow.
+        }
+
+
+        //if listed in blacklist or not listed in whitelist, this mod always returns canGrow = true.
+        if (config.isBlacklistDim) {
+            if (config.isListedDimension(dimension)) {
+                canGrow = true;
+            }
+        } else {
+            if (!config.isListedDimension(dimension)) {
+                canGrow = true;
+            }
+        }
+
         return canGrow;
+
     }
 
     public boolean canGrowHeuristic(World world, Block block, BlockPos blockPos) {

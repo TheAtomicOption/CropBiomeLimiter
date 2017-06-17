@@ -12,7 +12,7 @@
   "logoFile": "",
   "screenshots": [],
   "requiredMods": ["Forge"],
-  "dependencies": ["harvestcraft"],
+  "dependencies": ["harvestcraft","agricraft"],
   "useDependencyInformation": true
 }
 ]
