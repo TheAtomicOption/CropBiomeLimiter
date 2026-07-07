@@ -36,7 +36,7 @@ public final class ConfigAppInstallerSmokeTest {
 		assertTrue(Files.exists(appDirectory.resolve("Open Config App.cmd")), "double-click launcher should exist");
 		assertTrue(Files.exists(appDirectory.resolve("Open Config App.sh")), "Linux launcher should exist");
 		assertTrue(Files.exists(appDirectory.resolve("Open Config App.command")), "macOS launcher should exist");
-		assertTrue(Files.readString(appDirectory.resolve("README.md")).contains("No Python"), "README should describe non-developer launch");
+		assertTrue(Files.readString(appDirectory.resolve("README.md")).contains("Java helper"), "README should describe the launcher helper");
 		assertTrue(Files.readString(appDirectory.resolve("index.html")).contains("app.js"), "index should load the app script");
 
 		ConfigAppInstallResult secondResult = ConfigAppInstaller.tryInstall(directory);

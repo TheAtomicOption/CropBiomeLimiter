@@ -34,6 +34,7 @@ Use this fixture when testing the three behavior states in the Overworld. The Ne
   "schema_version": 1,
   "affects_bonemeal": true,
   "affects_block_placement": true,
+  "affects_village_farm_generation": true,
   "chat_info": true,
   "excluded_blocks": [],
   "fallback_mode": "threshold",

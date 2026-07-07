@@ -58,7 +58,8 @@ public final class ConfigLoaderSmokeTest {
 		fallsBackOnUnknownSerializedValues();
 		serializesDefaultConfigSchema();
 		exportsConfigAppSchemaContract();
-		generatedThresholdConfigHasClimateRulesForEveryDefaultCrop();
+		generatedThresholdConfigDocumentsEveryDefaultCropBehavior();
+		generatedExplicitConfigMirrorsThresholdDefaults();
 		defaultVanillaRulesCoverKeyPlants();
 		defaultThresholdRulesUseBiomeClimateStrategy();
 	}
@@ -108,6 +109,7 @@ public final class ConfigLoaderSmokeTest {
 				  "schema_version": 1,
 				  "affects_bonemeal": false,
 				  "affects_block_placement": true,
+				  "affects_village_farm_generation": false,
 				  "chat_info": false,
 				  "excluded_blocks": ["minecraft:cave_vines"],
 				  "fallback_mode": "threshold",
@@ -147,6 +149,7 @@ public final class ConfigLoaderSmokeTest {
 				explicitRules.cropBiomeRules().get(id("minecraft:wheat")).get(id("minecraft:desert")),
 				"Explicit mode biome/crop cell should parse");
 		assertTrue(!result.config().generalOptions().affectsBonemeal(), "affects_bonemeal should parse false");
+		assertTrue(!result.config().generalOptions().affectsVillageFarmGeneration(), "affects_village_farm_generation should parse false");
 		assertTrue(result.config().generalOptions().isExcluded(id("minecraft:cave_vines")), "excluded block should parse");
 	}
 
@@ -157,6 +160,7 @@ public final class ConfigLoaderSmokeTest {
 				  "schema_version": 1,
 				  "affects_bonemeal": true,
 				  "affects_block_placement": true,
+				  "affects_village_farm_generation": true,
 				  "chat_info": true,
 				  "excluded_blocks": [],
 				  "fallback_mode": "threshold",
@@ -284,6 +288,7 @@ public final class ConfigLoaderSmokeTest {
 
 		assertTrue(generalJson.contains("schema_version"), "general config should include schema version");
 		assertTrue(generalJson.contains("fallback_mode"), "general config should include fallback mode");
+		assertTrue(generalJson.contains("affects_village_farm_generation"), "general config should include the village farm generation toggle");
 		assertTrue(generalJson.contains("dimensions"), "general config should include dimension modes");
 		assertTrue(generalJson.contains("minecraft:overworld"), "general config should include overworld defaults");
 		assertTrue(explicitJson.contains("biomes"), "Explicit mode config should be biome-first");
@@ -319,6 +324,7 @@ public final class ConfigLoaderSmokeTest {
 		assertTrue(schemaJson.contains("Explicit mode"), "schema metadata should include the canonical Explicit mode label");
 		assertTrue(schemaJson.contains("Threshold mode"), "schema metadata should include the canonical Threshold mode label");
 		assertTrue(schemaJson.contains("allows_natural_growth"), "schema metadata should expose behavior action meanings");
+		assertTrue(schemaJson.contains("affects_village_farm_generation"), "schema metadata should expose the village farm generation toggle");
 		assertTrue(schemaJson.contains("has_precipitation"), "schema metadata should expose the Threshold mode precipitation input");
 		assertTrue(!schemaJson.contains("rainfall"), "schema metadata should not reintroduce removed rainfall values");
 	}
@@ -354,20 +360,51 @@ public final class ConfigLoaderSmokeTest {
 		ThresholdModeRules end = (ThresholdModeRules) defaults.rulesFor(Level.END);
 
 		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:wheat", 0.8F, true), "wheat should naturally grow in temperate wet biomes");
-		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:wheat", 2.0F, false), "wheat should be bonemeal-only in hot dry biomes");
+		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:wheat", 2.0F, false), "wheat should not claim hot dry carrot village climates");
+		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:wheat", 0.0F, true), "wheat should not claim snowy village crop defaults");
+		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:wheat", 0.25F, true), "wheat should not claim taiga village crop defaults");
+		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:carrots", 0.0F, true), "carrots should not claim snowy village climates");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:carrots", 0.8F, true), "carrots should overlap plains village climates");
+		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:carrots", 0.2F, true), "carrots should not overlap taiga village potato defaults");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:carrots", 2.0F, false), "carrots should match hot dry village climates");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:potatoes", 0.0F, true), "potatoes should overlap snowy village climates");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:potatoes", 0.2F, true), "potatoes should match taiga village climates");
+		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:potatoes", 0.8F, true), "potatoes should not be a plains default crop");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:beetroots", 0.0F, true), "beetroots should match snowy village climates");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:beetroots", 0.25F, true), "beetroots should overlap taiga village climates");
+		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:beetroots", 0.8F, true), "beetroots should not claim plains village climates");
+		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:beetroots", 2.0F, false), "beetroots should not claim hot dry village climates");
 		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:cactus", 2.0F, false), "cactus should naturally grow in desert-like climates");
 		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:cactus", 0.0F, true), "cactus should be bonemeal-only in freezing wet biomes by default");
+		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:cactus", 1.2F, false), "cactus should not claim merely warm dry climates");
 		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:cactus_flower", 2.0F, false), "cactus flowers should grow on desert-like cactus climates");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:bush", 0.5F, true), "bush should be allowed in cherry grove-like climates");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:bush", 0.6F, true), "bush should be allowed in birch forest-like climates");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:bush", 2.0F, false), "bush should remain allowed in hot dry climates");
 		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:cocoa", 0.95F, true), "cocoa should naturally grow in tropical wet biomes");
 		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:cocoa", 0.8F, true), "cocoa should be bonemeal-only in ordinary plains-like biomes by default");
 		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:jungle_sapling", 0.95F, true), "jungle saplings should naturally grow in jungle climates");
 		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:bamboo", 0.95F, true), "bamboo should naturally grow in bamboo jungle climates");
+		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:melon_stem", 2.0F, false), "melon stems should not match hot dry village farms");
+		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:melon_stem", 0.8F, true), "melon stems should not be a plains village crop");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:pumpkin_stem", 0.0F, true), "pumpkins should match broad vanilla pumpkin patch generation");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:pumpkin_stem", 2.0F, false), "pumpkins should match desert and badlands patch generation");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:short_grass", 2.0F, false), "short grass should match hot dry vanilla ground cover generation");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:tall_grass", 2.0F, false), "tall grass should match hot dry vanilla savanna generation");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:firefly_bush", 2.0F, false), "firefly bush should match hot dry vanilla ground cover generation");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:fern", 0.95F, true), "fern should match jungle ground cover generation");
 		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:sugar_cane", 2.0F, false), "sugar cane should remain valid in hot dry biomes where vanilla can generate it near water");
 		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:sugar_cane", 0.0F, true), "sugar cane should be bonemeal-only in freezing biomes by default");
 		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:spruce_sapling", -0.5F, true), "spruce should naturally grow in cold wet biomes");
+		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:spruce_sapling", 0.8F, true), "spruce should not grow by default in plains tree climates");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:acacia_sapling", 2.0F, false), "acacia should naturally grow in hot dry savanna-like climates");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:oak_sapling", 0.2F, true), "oak should cover windswept forest-like tree climates");
+		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:birch_sapling", 0.6F, true), "birch should naturally grow in birch forest climates");
+		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:birch_sapling", 0.2F, true), "birch should not claim taiga-like tree climates");
 		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:melon_stem", 0.95F, true), "melon should naturally grow in jungle-like climates");
 		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:mangrove_propagule", 0.8F, true), "mangrove propagules should naturally grow in mangrove swamp climates");
 		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:cherry_sapling", 0.5F, true), "cherry saplings should naturally grow in cherry grove climates");
+		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(overworld, "minecraft:cherry_sapling", 0.8F, true), "cherry saplings should stay tied to cherry grove-like climates");
 		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:pale_oak_sapling", 0.7F, true), "pale oak saplings should naturally grow in pale garden-like forest climates");
 		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:cave_vines", 0.5F, true), "cave vines should naturally grow in lush cave climates");
 		assertEquals(CropBehavior.GROWABLE, resolve(overworld, "minecraft:big_dripleaf", 0.5F, true), "dripleaf should naturally grow in lush cave climates");
@@ -379,9 +416,11 @@ public final class ConfigLoaderSmokeTest {
 		assertEquals(CropBehavior.GROWABLE, resolve(nether, "minecraft:warped_fungus", 2.0F, false), "warped fungus should naturally grow in Nether climates");
 		assertEquals(CropBehavior.GROWABLE, resolve(nether, "minecraft:weeping_vines", 2.0F, false), "weeping vines should naturally grow in Nether climates");
 		assertEquals(CropBehavior.GROWABLE, resolve(nether, "minecraft:twisting_vines", 2.0F, false), "twisting vines should naturally grow in Nether climates");
+		assertEquals(CropBehavior.GROWABLE, resolve(nether, "minecraft:bush", 2.0F, false), "cosmetic bush should remain allowed by Nether defaults");
 		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(nether, "minecraft:wheat", 2.0F, false), "overworld crops should be bonemeal-only by Nether defaults");
 
 		assertEquals(CropBehavior.GROWABLE, resolve(end, "minecraft:chorus_flower", 0.5F, false), "chorus should naturally grow in End climates");
+		assertEquals(CropBehavior.GROWABLE, resolve(end, "minecraft:bush", 0.5F, false), "cosmetic bush should remain allowed by End defaults");
 		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(end, "minecraft:wheat", 0.5F, false), "overworld crops should be bonemeal-only by End defaults");
 		assertEquals(CropBehavior.BONEMEAL_REQUIRED, resolve(end, "minecraft:nether_wart", 0.5F, false), "Nether crops should be bonemeal-only by End defaults");
 
@@ -394,33 +433,99 @@ public final class ConfigLoaderSmokeTest {
 		}
 	}
 
-	private static void generatedThresholdConfigHasClimateRulesForEveryDefaultCrop() throws IOException {
+	private static void generatedThresholdConfigDocumentsEveryDefaultCropBehavior() throws IOException {
 		Path directory = Files.createTempDirectory("cropbiomelimiter-generated-threshold-test");
 		ConfigLoadResult result = CropBiomeLimiterConfigLoader.tryLoadConfig(directory);
 		assertTrue(result.createdDefault(), "fresh startup should write default split config files");
 
 		JsonObject root = JsonParser.parseString(Files.readString(configPath(directory, CropBiomeLimiterConfigLoader.THRESHOLD_MODE_FILE_NAME))).getAsJsonObject();
 		JsonObject dimensions = root.getAsJsonObject("dimensions");
-		assertGeneratedDimensionRulesHaveClimateRules(dimensions, "minecraft:overworld");
-		assertGeneratedDimensionRulesHaveClimateRules(dimensions, "minecraft:the_nether");
-		assertGeneratedDimensionRulesHaveClimateRules(dimensions, "minecraft:the_end");
+		assertGeneratedDimensionRulesDocumentCropBehavior(dimensions, "minecraft:overworld");
+		assertGeneratedDimensionRulesDocumentCropBehavior(dimensions, "minecraft:the_nether");
+		assertGeneratedDimensionRulesDocumentCropBehavior(dimensions, "minecraft:the_end");
 	}
 
-	private static void assertGeneratedDimensionRulesHaveClimateRules(JsonObject dimensions, String dimensionId) {
+	private static void generatedExplicitConfigMirrorsThresholdDefaults() throws IOException {
+		Path directory = Files.createTempDirectory("cropbiomelimiter-generated-explicit-test");
+		ConfigLoadResult result = CropBiomeLimiterConfigLoader.tryLoadConfig(directory);
+		assertTrue(result.createdDefault(), "fresh startup should write default split config files");
+
+		JsonObject root = JsonParser.parseString(Files.readString(configPath(directory, CropBiomeLimiterConfigLoader.EXPLICIT_MODE_FILE_NAME))).getAsJsonObject();
+		JsonObject dimensions = root.getAsJsonObject("dimensions");
+		JsonObject overworld = dimensions.getAsJsonObject("minecraft:overworld");
+		JsonObject nether = dimensions.getAsJsonObject("minecraft:the_nether");
+		JsonObject end = dimensions.getAsJsonObject("minecraft:the_end");
+
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:plains", "minecraft:wheat"), "Generated Explicit mode should mirror Threshold mode for wheat in plains");
+		assertEquals("bonemeal-required", explicitBehavior(overworld, "minecraft:savanna", "minecraft:wheat"), "Generated Explicit mode should not make wheat a hot dry village crop");
+		assertEquals("bonemeal-required", explicitBehavior(overworld, "minecraft:snowy_plains", "minecraft:wheat"), "Generated Explicit mode should not make wheat a snowy village crop");
+		assertEquals("bonemeal-required", explicitBehavior(overworld, "minecraft:snowy_plains", "minecraft:carrots"), "Generated Explicit mode should not make carrots a snowy village crop");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:desert", "minecraft:carrots"), "Generated Explicit mode should mirror Threshold mode for carrots in hot dry villages");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:plains", "minecraft:carrots"), "Generated Explicit mode should mirror Threshold mode for carrots in plains overlap");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:snowy_plains", "minecraft:beetroots"), "Generated Explicit mode should mirror Threshold mode for beetroots in snowy villages");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:taiga", "minecraft:beetroots"), "Generated Explicit mode should mirror Threshold mode for beetroots in taiga overlap");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:taiga", "minecraft:potatoes"), "Generated Explicit mode should mirror Threshold mode for potatoes in taiga villages");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:snowy_plains", "minecraft:potatoes"), "Generated Explicit mode should mirror Threshold mode for potatoes in snowy overlap");
+		assertEquals("bonemeal-required", explicitBehavior(overworld, "minecraft:plains", "minecraft:potatoes"), "Generated Explicit mode should not make potatoes a plains default crop");
+		assertEquals("bonemeal-required", explicitBehavior(overworld, "minecraft:desert", "minecraft:beetroots"), "Generated Explicit mode should not make beetroots a hot dry village crop");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:desert", "minecraft:cactus"), "Generated Explicit mode should mirror Threshold mode for cactus in deserts");
+		assertEquals("bonemeal-required", explicitBehavior(overworld, "minecraft:ice_spikes", "minecraft:cactus"), "Generated Explicit mode should mirror Threshold mode for cactus in icy biomes");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:savanna", "minecraft:cactus"), "Generated Explicit mode should mirror the hot dry cactus bucket");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:savanna", "minecraft:short_grass"), "Generated Explicit mode should mirror vanilla savanna short grass generation");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:savanna", "minecraft:tall_grass"), "Generated Explicit mode should mirror vanilla savanna tall grass generation");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:badlands", "minecraft:firefly_bush"), "Generated Explicit mode should mirror vanilla badlands firefly bush generation");
+		assertEquals("bonemeal-required", explicitBehavior(overworld, "minecraft:desert", "minecraft:melon_stem"), "Generated Explicit mode should not make melons a desert village crop");
+		assertEquals("bonemeal-required", explicitBehavior(overworld, "minecraft:savanna", "minecraft:melon_stem"), "Generated Explicit mode should not make melons a savanna village crop");
+		assertEquals("bonemeal-required", explicitBehavior(overworld, "minecraft:plains", "minecraft:melon_stem"), "Generated Explicit mode should not make melons a plains default crop");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:desert", "minecraft:pumpkin_stem"), "Generated Explicit mode should mirror broad vanilla pumpkin patch generation");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:savanna", "minecraft:acacia_sapling"), "Generated Explicit mode should mirror acacia tree generation in savannas");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:desert", "minecraft:acacia_sapling"), "Generated Explicit mode should mirror the hot dry tree bucket");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:birch_forest", "minecraft:birch_sapling"), "Generated Explicit mode should mirror birch tree generation");
+		assertEquals("bonemeal-required", explicitBehavior(overworld, "minecraft:taiga", "minecraft:birch_sapling"), "Generated Explicit mode should not make birch a taiga default tree");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:cherry_grove", "minecraft:bush"), "Generated Explicit mode should mirror Threshold mode for bush in cherry groves");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:birch_forest", "minecraft:bush"), "Generated Explicit mode should mirror Threshold mode for bush in birch forests");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:jungle", "minecraft:cocoa"), "Generated Explicit mode should mirror Threshold mode for cocoa in jungles");
+		assertEquals("growable", explicitBehavior(overworld, "minecraft:jungle", "minecraft:fern"), "Generated Explicit mode should mirror vanilla jungle fern generation");
+		assertEquals("bonemeal-required", explicitBehavior(overworld, "minecraft:plains", "minecraft:cocoa"), "Generated Explicit mode should mirror Threshold mode for cocoa in ordinary wet biomes");
+		assertEquals("growable", explicitBehavior(nether, "minecraft:nether_wastes", "minecraft:nether_wart"), "Generated Explicit mode should mirror Threshold mode for nether wart in Nether climates");
+		assertEquals("growable", explicitBehavior(nether, "minecraft:nether_wastes", "minecraft:bush"), "Generated Explicit mode should mirror Threshold mode for bush in Nether dimensions");
+		assertEquals("growable", explicitBehavior(end, "minecraft:the_end", "minecraft:chorus_flower"), "Generated Explicit mode should mirror Threshold mode for chorus in End climates");
+		assertEquals("growable", explicitBehavior(end, "minecraft:the_end", "minecraft:bush"), "Generated Explicit mode should mirror Threshold mode for bush in End dimensions");
+	}
+
+	private static void assertGeneratedDimensionRulesDocumentCropBehavior(JsonObject dimensions, String dimensionId) {
 		JsonObject crops = dimensions.getAsJsonObject(dimensionId).getAsJsonObject("crops");
 		for (Block block : GrowableBlockClassifier.defaultGrowableBlocks()) {
 			String cropId = BuiltInRegistries.BLOCK.getKey(block).toString();
 			assertTrue(crops.has(cropId), "generated Threshold mode config should include " + cropId + " in " + dimensionId);
-			assertTrue(crops.getAsJsonObject(cropId).getAsJsonArray("climate_rules").size() > 0,
-					"generated Threshold mode config should include climate rules for " + cropId + " in " + dimensionId);
+			JsonObject cropRule = crops.getAsJsonObject(cropId);
+			boolean alwaysGrowable = "growable".equals(cropRule.get("default_behavior").getAsString())
+					&& cropRule.getAsJsonArray("climate_rules").size() == 0;
+			assertTrue(alwaysGrowable || cropRule.getAsJsonArray("climate_rules").size() > 0,
+					"generated Threshold mode config should include climate rules or an always-growable default for " + cropId + " in " + dimensionId);
 		}
+	}
+
+	private static String explicitBehavior(JsonObject dimensionRules, String biomeId, String cropId) {
+		String defaultBehavior = dimensionRules.get("default_behavior").getAsString();
+		JsonObject biomes = dimensionRules.getAsJsonObject("biomes");
+		if (!biomes.has(biomeId)) {
+			return defaultBehavior;
+		}
+		JsonObject crops = biomes.getAsJsonObject(biomeId);
+		if (!crops.has(cropId)) {
+			return defaultBehavior;
+		}
+		return crops.get(cropId).getAsString();
 	}
 
 	private static void assertDefaultRulesCoverTrackedVanillaGrowables(ThresholdModeRules rules, String dimensionName) {
 		for (Block block : GrowableBlockClassifier.defaultGrowableBlocks()) {
 			Identifier blockId = BuiltInRegistries.BLOCK.getKey(block);
 			assertTrue(rules.cropRules().containsKey(blockId), dimensionName + " default rules should include tracked vanilla growable " + blockId);
-			assertTrue(!rules.cropRules().get(blockId).climateRules().isEmpty(), dimensionName + " default rules should include climate rules for " + blockId);
+			ThresholdCropRule rule = rules.cropRules().get(blockId);
+			assertTrue(rule.defaultBehavior() == CropBehavior.GROWABLE || !rule.climateRules().isEmpty(),
+					dimensionName + " default rules should include climate rules or an always-growable default for " + blockId);
 		}
 	}
 

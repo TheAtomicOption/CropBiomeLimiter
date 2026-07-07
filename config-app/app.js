@@ -2,12 +2,22 @@ export const BEHAVIORS = ["growable", "bonemeal-required", "unplantable"];
 export const MODES = ["explicit", "threshold"];
 export const PRECIPITATION_REQUIREMENTS = ["required", "forbidden", "ignored"];
 
+const VERY_COLD = -1.0;
+const FREEZING = 0.15;
+const COOL = 0.5;
+const TEMPERATE = 0.8;
+const TROPICAL = 0.95;
+const HOT = 1.5;
+const VERY_HOT = 2.1;
+
 const FILE_NAMES = {
 	general: "general.json",
 	explicit: "explicit-mode.json",
 	threshold: "threshold-mode.json",
 	snapshot: "cropbiomelimiter-registry-snapshot.json"
 };
+
+const THEME_STORAGE_KEY = "cropbiomelimiter.theme";
 
 const MODE_LABELS = {
 	explicit: "Explicit mode",
@@ -45,21 +55,67 @@ const DEFAULT_CROPS = [
 	"minecraft:beetroots",
 	"minecraft:melon_stem",
 	"minecraft:pumpkin_stem",
+	"minecraft:attached_melon_stem",
+	"minecraft:attached_pumpkin_stem",
+	"minecraft:torchflower_crop",
+	"minecraft:pitcher_crop",
 	"minecraft:cactus",
+	"minecraft:cactus_flower",
 	"minecraft:sugar_cane",
 	"minecraft:cocoa",
 	"minecraft:nether_wart",
+	"minecraft:brown_mushroom",
+	"minecraft:red_mushroom",
 	"minecraft:oak_sapling",
 	"minecraft:spruce_sapling",
 	"minecraft:birch_sapling",
 	"minecraft:jungle_sapling",
 	"minecraft:acacia_sapling",
-	"minecraft:dark_oak_sapling",
 	"minecraft:cherry_sapling",
+	"minecraft:dark_oak_sapling",
 	"minecraft:pale_oak_sapling",
 	"minecraft:mangrove_propagule",
+	"minecraft:azalea",
+	"minecraft:flowering_azalea",
+	"minecraft:bamboo_sapling",
+	"minecraft:bamboo",
 	"minecraft:sweet_berry_bush",
-	"minecraft:cave_vines"
+	"minecraft:cave_vines",
+	"minecraft:cave_vines_plant",
+	"minecraft:seagrass",
+	"minecraft:tall_seagrass",
+	"minecraft:kelp",
+	"minecraft:kelp_plant",
+	"minecraft:vine",
+	"minecraft:glow_lichen",
+	"minecraft:chorus_flower",
+	"minecraft:chorus_plant",
+	"minecraft:crimson_fungus",
+	"minecraft:warped_fungus",
+	"minecraft:crimson_roots",
+	"minecraft:warped_roots",
+	"minecraft:weeping_vines",
+	"minecraft:weeping_vines_plant",
+	"minecraft:twisting_vines",
+	"minecraft:twisting_vines_plant",
+	"minecraft:big_dripleaf",
+	"minecraft:big_dripleaf_stem",
+	"minecraft:small_dripleaf",
+	"minecraft:moss_block",
+	"minecraft:moss_carpet",
+	"minecraft:pale_moss_block",
+	"minecraft:pale_moss_carpet",
+	"minecraft:pale_hanging_moss",
+	"minecraft:hanging_roots",
+	"minecraft:short_grass",
+	"minecraft:tall_grass",
+	"minecraft:fern",
+	"minecraft:large_fern",
+	"minecraft:bush",
+	"minecraft:short_dry_grass",
+	"minecraft:tall_dry_grass",
+	"minecraft:wildflowers",
+	"minecraft:firefly_bush"
 ];
 
 export const DEFAULT_BIOMES = [
@@ -134,6 +190,7 @@ const DEFAULT_GENERAL = {
 	schema_version: 1,
 	affects_bonemeal: true,
 	affects_block_placement: true,
+	affects_village_farm_generation: true,
 	chat_info: true,
 	excluded_blocks: [],
 	fallback_mode: "threshold",
@@ -144,16 +201,7 @@ const DEFAULT_GENERAL = {
 	}
 };
 
-const DEFAULT_EXPLICIT = {
-	schema_version: 1,
-	fallback: {
-		default_behavior: "bonemeal-required",
-		biomes: {}
-	},
-	dimensions: {}
-};
-
-const DEFAULT_THRESHOLD = {
+export const DEFAULT_THRESHOLD = {
 	schema_version: 1,
 	fallback: {
 		default_rule: {
@@ -165,6 +213,9 @@ const DEFAULT_THRESHOLD = {
 	dimensions: {}
 };
 
+const EXPLICIT_DEFAULT_SOURCE_THRESHOLD = createExplicitDefaultSourceThreshold();
+export const DEFAULT_EXPLICIT = createExplicitFromThreshold(EXPLICIT_DEFAULT_SOURCE_THRESHOLD, DEFAULT_BIOMES);
+
 const state = {
 	general: clone(DEFAULT_GENERAL),
 	explicit: clone(DEFAULT_EXPLICIT),
@@ -173,7 +224,9 @@ const state = {
 	selectedDimension: "minecraft:overworld",
 	cropFilter: "",
 	biomeFilter: "",
-	status: "Defaults loaded",
+	biomeSort: "name",
+	theme: loadThemePreference(),
+	status: "Vanilla behavior loaded",
 	importMessages: [],
 	helper: {
 		available: false,
@@ -206,6 +259,276 @@ export function resolveThresholdBehavior(rule, biome) {
 	}
 
 	return normalizedRule.default_behavior;
+}
+
+function createExplicitDefaultSourceThreshold() {
+	const defaultRule = defaultThresholdRule();
+	return {
+		schema_version: 1,
+		fallback: {
+			default_rule: clone(defaultRule),
+			crops: {}
+		},
+		dimensions: {
+			"minecraft:overworld": createThresholdDimension(true, false, false),
+			"minecraft:the_nether": createThresholdDimension(false, true, false),
+			"minecraft:the_end": createThresholdDimension(false, false, true)
+		}
+	};
+}
+
+function createThresholdDimension(overworldGrowable, netherGrowable, endGrowable) {
+	const crops = {};
+	putOverworldThresholdRules(crops, overworldGrowable);
+	putNetherThresholdRules(crops, netherGrowable);
+	putEndThresholdRules(crops, endGrowable);
+	return {
+		default_rule: defaultThresholdRule(),
+		crops
+	};
+}
+
+function putOverworldThresholdRules(crops, growableInDimension) {
+	const wheat = dimensionRule(wheatRule(), growableInDimension);
+	const carrots = dimensionRule(carrotRule(), growableInDimension);
+	const potatoes = dimensionRule(potatoRule(), growableInDimension);
+	const beetroots = dimensionRule(beetrootRule(), growableInDimension);
+	const pumpkin = dimensionRule(pumpkinRule(), growableInDimension);
+	const melon = dimensionRule(melonRule(), growableInDimension);
+	const oakTree = dimensionRule(oakTreeRule(), growableInDimension);
+	const birchTree = dimensionRule(birchTreeRule(), growableInDimension);
+	const cherryTree = dimensionRule(cherryTreeRule(), growableInDimension);
+	const spruceTree = dimensionRule(spruceTreeRule(), growableInDimension);
+	const acaciaTree = dimensionRule(acaciaTreeRule(), growableInDimension);
+	const paleGarden = dimensionRule(paleGardenRule(), growableInDimension);
+	const forestWet = dimensionRule(forestWetRule(), growableInDimension);
+	const warmWet = dimensionRule(warmWetRule(), growableInDimension);
+	const tropicalWet = dimensionRule(tropicalWetRule(), growableInDimension);
+	const hotDry = dimensionRule(desertDryRule(), growableInDimension);
+	const alwaysGrowable = alwaysGrowableRule();
+	const sugarCane = dimensionRule(sugarCaneRule(), growableInDimension);
+	const mushroom = dimensionRule(overworldMushroomRule(), growableInDimension);
+	const aquatic = dimensionRule(aquaticWetRule(), growableInDimension);
+	const lush = dimensionRule(lushWetRule(), growableInDimension);
+	const wetBrush = dimensionRule(wetBrushRule(), growableInDimension);
+	const fern = dimensionRule(fernRule(), growableInDimension);
+
+	putRules(crops, wheat, "minecraft:wheat");
+	putRules(crops, carrots, "minecraft:carrots");
+	putRules(crops, potatoes, "minecraft:potatoes");
+	putRules(crops, beetroots, "minecraft:beetroots");
+	putRules(crops, pumpkin, "minecraft:pumpkin_stem", "minecraft:attached_pumpkin_stem");
+	putRules(crops, warmWet, "minecraft:torchflower_crop", "minecraft:pitcher_crop", "minecraft:mangrove_propagule");
+	putRules(crops, birchTree, "minecraft:wildflowers");
+	putRules(crops, melon, "minecraft:melon_stem", "minecraft:attached_melon_stem");
+	putRules(crops, tropicalWet, "minecraft:bamboo_sapling", "minecraft:bamboo");
+	putRules(crops, tropicalWet, "minecraft:cocoa", "minecraft:jungle_sapling");
+	putRules(crops, hotDry, "minecraft:cactus", "minecraft:cactus_flower", "minecraft:short_dry_grass", "minecraft:tall_dry_grass");
+	putRules(crops, acaciaTree, "minecraft:acacia_sapling");
+	putRules(crops, alwaysGrowable, "minecraft:bush");
+	putRules(crops, sugarCane, "minecraft:sugar_cane");
+	putRules(crops, spruceTree, "minecraft:sweet_berry_bush", "minecraft:spruce_sapling", "minecraft:large_fern");
+	putRules(crops, fern, "minecraft:fern");
+	putRules(crops, wetBrush, "minecraft:firefly_bush", "minecraft:short_grass", "minecraft:tall_grass");
+	putRules(crops, oakTree, "minecraft:oak_sapling");
+	putRules(crops, birchTree, "minecraft:birch_sapling");
+	putRules(crops, cherryTree, "minecraft:cherry_sapling");
+	putRules(crops, lush, "minecraft:azalea", "minecraft:flowering_azalea");
+	putRules(crops, forestWet, "minecraft:dark_oak_sapling", "minecraft:hanging_roots");
+	putRules(crops, paleGarden, "minecraft:pale_oak_sapling", "minecraft:pale_moss_block", "minecraft:pale_moss_carpet", "minecraft:pale_hanging_moss");
+	putRules(crops, mushroom, "minecraft:brown_mushroom", "minecraft:red_mushroom");
+	putRules(crops, aquatic, "minecraft:seagrass", "minecraft:tall_seagrass", "minecraft:kelp", "minecraft:kelp_plant");
+	putRules(crops, lush, "minecraft:cave_vines", "minecraft:cave_vines_plant", "minecraft:vine", "minecraft:glow_lichen", "minecraft:big_dripleaf", "minecraft:big_dripleaf_stem", "minecraft:small_dripleaf", "minecraft:moss_block", "minecraft:moss_carpet");
+}
+
+function putNetherThresholdRules(crops, growableInDimension) {
+	const nether = dimensionRule(netherRule(), growableInDimension);
+	putRules(crops, nether, "minecraft:nether_wart", "minecraft:crimson_fungus", "minecraft:warped_fungus", "minecraft:crimson_roots", "minecraft:warped_roots", "minecraft:weeping_vines", "minecraft:weeping_vines_plant", "minecraft:twisting_vines", "minecraft:twisting_vines_plant");
+}
+
+function putEndThresholdRules(crops, growableInDimension) {
+	const end = dimensionRule(endRule(), growableInDimension);
+	putRules(crops, end, "minecraft:chorus_flower", "minecraft:chorus_plant");
+}
+
+function putRules(crops, rule, ...cropIds) {
+	for (const cropId of cropIds) {
+		crops[cropId] = clone(rule);
+	}
+}
+
+function dimensionRule(rule, growableInDimension) {
+	if (growableInDimension) {
+		return rule;
+	}
+	return {
+		default_behavior: "bonemeal-required",
+		climate_rules: rule.climate_rules.map((climateRule) => ({
+			...climateRule,
+			behavior: "bonemeal-required"
+		}))
+	};
+}
+
+function defaultThresholdRule() {
+	return thresholdRule("bonemeal-required", []);
+}
+
+function alwaysGrowableRule() {
+	return thresholdRule("growable", []);
+}
+
+function wheatRule() {
+	return thresholdRule("bonemeal-required", [
+		growable(COOL, TROPICAL, "required")
+	]);
+}
+
+function carrotRule() {
+	return thresholdRule("bonemeal-required", [
+		growable(TEMPERATE, VERY_HOT, "ignored")
+	]);
+}
+
+function potatoRule() {
+	return thresholdRule("bonemeal-required", [growable(VERY_COLD, TEMPERATE, "required")]);
+}
+
+function beetrootRule() {
+	return thresholdRule("bonemeal-required", [growable(VERY_COLD, COOL, "required")]);
+}
+
+function pumpkinRule() {
+	return thresholdRule("bonemeal-required", [growable(VERY_COLD, VERY_HOT, "ignored")]);
+}
+
+function melonRule() {
+	return thresholdRule("bonemeal-required", [growable(TROPICAL, HOT, "required")]);
+}
+
+function oakTreeRule() {
+	return thresholdRule("bonemeal-required", [growable(FREEZING, TROPICAL, "required")]);
+}
+
+function birchTreeRule() {
+	return thresholdRule("bonemeal-required", [growable(COOL, TROPICAL, "required")]);
+}
+
+function cherryTreeRule() {
+	return thresholdRule("bonemeal-required", [growable(COOL, TEMPERATE, "required")]);
+}
+
+function spruceTreeRule() {
+	return thresholdRule("bonemeal-required", [growable(VERY_COLD, COOL, "required")]);
+}
+
+function acaciaTreeRule() {
+	return thresholdRule("bonemeal-required", [growable(TEMPERATE, VERY_HOT, "forbidden")]);
+}
+
+function paleGardenRule() {
+	return thresholdRule("bonemeal-required", [growable(COOL, TEMPERATE, "required")]);
+}
+
+function forestWetRule() {
+	return thresholdRule("bonemeal-required", [growable(COOL, TROPICAL, "required")]);
+}
+
+function warmWetRule() {
+	return thresholdRule("bonemeal-required", [growable(TEMPERATE, HOT, "required")]);
+}
+
+function tropicalWetRule() {
+	return thresholdRule("bonemeal-required", [growable(TROPICAL, HOT, "required")]);
+}
+
+function desertDryRule() {
+	return thresholdRule("bonemeal-required", [growable(HOT, VERY_HOT, "forbidden")]);
+}
+
+function sugarCaneRule() {
+	return thresholdRule("bonemeal-required", [growable(COOL, VERY_HOT, "ignored")]);
+}
+
+function overworldMushroomRule() {
+	return thresholdRule("bonemeal-required", [
+		growable(COOL, HOT, "required"),
+		growable(COOL, TEMPERATE, "forbidden")
+	]);
+}
+
+function aquaticWetRule() {
+	return thresholdRule("bonemeal-required", [growable(VERY_COLD, HOT, "required")]);
+}
+
+function lushWetRule() {
+	return thresholdRule("bonemeal-required", [growable(COOL, TROPICAL, "required")]);
+}
+
+function wetBrushRule() {
+	return thresholdRule("bonemeal-required", [
+		growable(VERY_COLD, HOT, "required"),
+		growable(TEMPERATE, VERY_HOT, "forbidden")
+	]);
+}
+
+function fernRule() {
+	return thresholdRule("bonemeal-required", [
+		growable(VERY_COLD, COOL, "required"),
+		growable(TROPICAL, HOT, "required")
+	]);
+}
+
+function netherRule() {
+	return thresholdRule("bonemeal-required", [growable(HOT, VERY_HOT, "forbidden")]);
+}
+
+function endRule() {
+	return thresholdRule("bonemeal-required", [growable(COOL, TEMPERATE, "forbidden")]);
+}
+
+function thresholdRule(defaultBehavior, climateRules) {
+	return {
+		default_behavior: defaultBehavior,
+		climate_rules: climateRules
+	};
+}
+
+function growable(minTemperature, maxTemperature, precipitation) {
+	return {
+		min_temperature: minTemperature,
+		max_temperature: maxTemperature,
+		precipitation,
+		behavior: "growable"
+	};
+}
+
+export function createExplicitFromThreshold(threshold, biomes) {
+	return {
+		schema_version: 1,
+		fallback: explicitRulesFromThreshold(threshold?.fallback, biomes),
+		dimensions: normalizeMap(threshold?.dimensions, (rules) => explicitRulesFromThreshold(rules, biomes))
+	};
+}
+
+function explicitRulesFromThreshold(rules, biomes) {
+	const normalizedRules = normalizeThresholdRules(rules);
+	const defaultBehavior = normalizedRules.default_rule.default_behavior;
+	const explicit = {
+		default_behavior: defaultBehavior,
+		biomes: {}
+	};
+	for (const [crop, rule] of Object.entries(normalizedRules.crops)) {
+		const normalizedRule = normalizeThresholdRule(rule);
+		for (const biome of biomes) {
+			const behavior = resolveThresholdBehavior(normalizedRule, biome);
+			if (behavior !== defaultBehavior) {
+				explicit.biomes[biome.id] ??= {};
+				explicit.biomes[biome.id][crop] = behavior;
+			}
+		}
+	}
+	return explicit;
 }
 
 export function collectDimensions(general, explicit, threshold, snapshot) {
@@ -263,6 +586,79 @@ export function collectBiomes(explicit, snapshot) {
 	return [...values.values()].sort((left, right) => left.id.localeCompare(right.id));
 }
 
+export function matchesBiomeFilter(biome, filter) {
+	const parsed = typeof filter === "string" ? parseBiomeFilter(filter) : filter;
+	if (!parsed) {
+		return true;
+	}
+	const temperature = Number(biome?.temperature);
+	if (parsed.minTemperature != null && (!Number.isFinite(temperature) || temperature < parsed.minTemperature)) {
+		return false;
+	}
+	if (parsed.maxTemperature != null && (!Number.isFinite(temperature) || temperature > parsed.maxTemperature)) {
+		return false;
+	}
+	if (parsed.precipitation === "wet" && !biome?.has_precipitation) {
+		return false;
+	}
+	if (parsed.precipitation === "dry" && biome?.has_precipitation) {
+		return false;
+	}
+	return parsed.text.length === 0 || idMatchesText(biome?.id ?? "", parsed.text);
+}
+
+export function sortBiomes(biomes, sortMode = "name") {
+	const sorted = [...biomes];
+	const mode = biomeSortOr(sortMode);
+	sorted.sort((left, right) => {
+		if (mode === "temperature") {
+			return compareNumbers(left.temperature, right.temperature) || left.id.localeCompare(right.id);
+		}
+		if (mode === "precipitation") {
+			return Number(Boolean(right.has_precipitation)) - Number(Boolean(left.has_precipitation))
+					|| compareNumbers(left.temperature, right.temperature)
+					|| left.id.localeCompare(right.id);
+		}
+		return compactId(left.id).localeCompare(compactId(right.id)) || left.id.localeCompare(right.id);
+	});
+	return sorted;
+}
+
+function parseBiomeFilter(value) {
+	let text = String(value ?? "").trim().toLowerCase();
+	let precipitation = null;
+	if (/\bwet\b/.test(text)) {
+		precipitation = "wet";
+		text = text.replace(/\bwet\b/g, " ");
+	}
+	if (/\bdry\b/.test(text)) {
+		precipitation = "dry";
+		text = text.replace(/\bdry\b/g, " ");
+	}
+
+	let minTemperature = null;
+	let maxTemperature = null;
+	text = text.replace(/(?:temp(?:erature)?\s*)?(-?\d+(?:\.\d+)?)\s*\.\.\s*(-?\d+(?:\.\d+)?)/g, (_match, min, max) => {
+		minTemperature = Math.min(Number(min), Number(max));
+		maxTemperature = Math.max(Number(min), Number(max));
+		return " ";
+	});
+	text = text.replace(/(?:temp(?:erature)?\s*)?(>=|>|<=|<|=)\s*(-?\d+(?:\.\d+)?)/g, (_match, operator, rawNumber) => {
+		const number = Number(rawNumber);
+		if (operator === ">" || operator === ">=") {
+			minTemperature = number;
+		} else if (operator === "<" || operator === "<=") {
+			maxTemperature = number;
+		} else {
+			minTemperature = number;
+			maxTemperature = number;
+		}
+		return " ";
+	});
+	text = text.replace(/\btemp(?:erature)?\b/g, " ").replace(/\s+/g, " ").trim();
+	return { text, minTemperature, maxTemperature, precipitation };
+}
+
 export function copyDimensionModeAndRules(general, explicit, threshold, sourceDimension, targetDimension) {
 	if (!sourceDimension || !targetDimension || sourceDimension === targetDimension) {
 		return false;
@@ -302,6 +698,7 @@ function init() {
 	refs = {
 		fileInput: document.getElementById("fileInput"),
 		statusText: document.getElementById("statusText"),
+		themeToggle: document.getElementById("themeToggle"),
 		loadInstalled: document.getElementById("loadInstalled"),
 		saveInstalled: document.getElementById("saveInstalled"),
 		downloadGeneral: document.getElementById("downloadGeneral"),
@@ -314,12 +711,14 @@ function init() {
 		copyDimensionRules: document.getElementById("copyDimensionRules"),
 		affectsBonemeal: document.getElementById("affectsBonemeal"),
 		affectsPlacement: document.getElementById("affectsPlacement"),
+		affectsVillageFarms: document.getElementById("affectsVillageFarms"),
 		chatInfo: document.getElementById("chatInfo"),
 		excludedBlocks: document.getElementById("excludedBlocks"),
 		validationList: document.getElementById("validationList"),
 		dimensionTabs: document.getElementById("dimensionTabs"),
 		cropFilter: document.getElementById("cropFilter"),
 		biomeFilter: document.getElementById("biomeFilter"),
+		biomeSort: document.getElementById("biomeSort"),
 		resetDimension: document.getElementById("resetDimension"),
 		explicitPanel: document.getElementById("explicitPanel"),
 		thresholdPanel: document.getElementById("thresholdPanel"),
@@ -339,12 +738,18 @@ function init() {
 	fillRequirementSelect(refs.bulkPrecipitation);
 	fillBehaviorSelect(refs.bulkBehavior);
 	refs.bulkBehavior.value = "growable";
+	applyTheme(state.theme);
 	bindEvents();
 	render();
 	connectHelper();
 }
 
 function bindEvents() {
+	refs.themeToggle.addEventListener("click", () => {
+		state.theme = state.theme === "dark" ? "light" : "dark";
+		saveThemePreference(state.theme);
+		applyTheme(state.theme);
+	});
 	refs.loadInstalled.addEventListener("click", async () => {
 		await loadInstalledConfig();
 		render();
@@ -387,6 +792,9 @@ function bindEvents() {
 	refs.affectsPlacement.addEventListener("change", () => {
 		state.general.affects_block_placement = refs.affectsPlacement.checked;
 	});
+	refs.affectsVillageFarms.addEventListener("change", () => {
+		state.general.affects_village_farm_generation = refs.affectsVillageFarms.checked;
+	});
 	refs.chatInfo.addEventListener("change", () => {
 		state.general.chat_info = refs.chatInfo.checked;
 	});
@@ -399,6 +807,10 @@ function bindEvents() {
 	});
 	refs.biomeFilter.addEventListener("input", () => {
 		state.biomeFilter = refs.biomeFilter.value.trim().toLowerCase();
+		renderMode();
+	});
+	refs.biomeSort.addEventListener("change", () => {
+		state.biomeSort = biomeSortOr(refs.biomeSort.value);
 		renderMode();
 	});
 	refs.explicitDefault.addEventListener("change", () => {
@@ -485,7 +897,10 @@ async function loadInstalledConfig() {
 async function loadInstalledFile(key, fileName, apply, loaded, messages, optional = false) {
 	try {
 		const response = await fetch(`/api/files/${key}`, { cache: "no-store" });
-		if (response.status === 404 && optional) {
+		if (response.status === 404) {
+			if (!optional) {
+				messages.push(`${fileName}: not found in installed config folder`);
+			}
 			return;
 		}
 		if (!response.ok) {
@@ -614,8 +1029,10 @@ function renderSettings(dimensions) {
 	refs.copyDimensionSelect.disabled = copyTargets.length === 0;
 	refs.copyDimensionRules.disabled = copyTargets.length === 0;
 	refs.modeSelect.value = currentMode();
+	refs.biomeSort.value = biomeSortOr(state.biomeSort);
 	refs.affectsBonemeal.checked = Boolean(state.general.affects_bonemeal);
 	refs.affectsPlacement.checked = Boolean(state.general.affects_block_placement);
+	refs.affectsVillageFarms.checked = Boolean(state.general.affects_village_farm_generation);
 	refs.chatInfo.checked = Boolean(state.general.chat_info);
 	refs.excludedBlocks.value = arrayOr(state.general.excluded_blocks).join(", ");
 }
@@ -689,9 +1106,7 @@ function renderExplicitGrid() {
 	headRow.appendChild(th("Crop / Biome", "crop-head"));
 	for (const biome of biomes) {
 		const cell = th("", "biome-head");
-		const button = idButton(biome.id, () => cycleExplicitColumn(rules, biome.id, crops, biomes));
-		button.title = `${biome.id} - apply next behavior to this biome`;
-		cell.appendChild(button);
+		cell.appendChild(biomeHeader(biome, () => cycleExplicitColumn(rules, biome.id, crops)));
 		headRow.appendChild(cell);
 	}
 	thead.appendChild(headRow);
@@ -700,17 +1115,16 @@ function renderExplicitGrid() {
 	for (const crop of crops) {
 		const row = document.createElement("tr");
 		const cropHeader = th("", "crop-head");
-		const cropButton = idButton(crop, () => cycleExplicitRow(rules, crop, biomes));
-		cropButton.title = `${crop} - apply next behavior to this crop`;
-		cropHeader.appendChild(cropButton);
+		cropHeader.appendChild(cropHeaderContent(crop, () => cycleExplicitRow(rules, crop, biomes)));
 		row.appendChild(cropHeader);
 
 		for (const biome of biomes) {
-			const behavior = explicitBehavior(rules, crop, biome.id);
 			const cell = document.createElement("td");
+			const behavior = explicitBehavior(rules, crop, biome.id);
 			const button = behaviorButton(behavior);
+			button.title = `${BEHAVIOR_LABELS[behavior]} - ${compactId(crop)} in ${compactId(biome.id)} (${crop} / ${biome.id})`;
 			button.addEventListener("click", () => {
-				setExplicitCell(rules, crop, biome.id, cycleBehavior(behavior));
+				setExplicitCell(rules, crop, biome.id, cycleBehavior(explicitBehavior(rules, crop, biome.id)));
 				renderExplicitGrid();
 			});
 			cell.appendChild(button);
@@ -736,11 +1150,21 @@ function renderThresholdGrid() {
 	table.className = "threshold-grid";
 	const thead = document.createElement("thead");
 	const headRow = document.createElement("tr");
-	["Crop", "Default", "Min", "Max", "Precipitation", "Behavior", "Reset"].forEach((label, index) => {
-		headRow.appendChild(th(label, index === 0 ? "threshold-crop" : "threshold-control"));
+	const thresholdColumns = [
+		{ label: "Crop", className: "threshold-crop" },
+		{ label: "Unsuitable", className: "threshold-control threshold-rule-cell threshold-rule-start" },
+		{ label: "Min", className: "threshold-control threshold-rule-cell" },
+		{ label: "Max", className: "threshold-control threshold-rule-cell" },
+		{ label: "Precipitation", className: "threshold-control threshold-rule-cell" },
+		{ label: "Behavior", className: "threshold-control threshold-rule-cell threshold-rule-end" }
+	];
+	thresholdColumns.forEach((column) => {
+		headRow.appendChild(th(column.label, column.className));
 	});
 	for (const biome of biomes) {
-		headRow.appendChild(th(shortId(biome.id), "preview-cell"));
+		const cell = th("", "preview-cell biome-head");
+		cell.appendChild(biomeHeader(biome));
+		headRow.appendChild(cell);
 	}
 	thead.appendChild(headRow);
 
@@ -751,46 +1175,35 @@ function renderThresholdGrid() {
 		const climateRule = displayClimateRule(rule);
 
 		const cropCell = th("", "threshold-crop");
-		const cropButton = idButton(crop, () => {
+		cropCell.appendChild(thresholdCropHeaderContent(crop, () => {
 			ensureThresholdCropRule(rules, crop).default_behavior = cycleBehavior(thresholdRuleFor(rules, crop).default_behavior);
 			renderThresholdGrid();
-		});
-		cropButton.title = `${crop} - cycle crop default`;
-		cropCell.appendChild(cropButton);
+		}, () => {
+			delete rules.crops[crop];
+			renderThresholdGrid();
+		}));
 		row.appendChild(cropCell);
 
 		row.appendChild(controlCell(behaviorSelect(rule.default_behavior, (value) => {
 			ensureThresholdCropRule(rules, crop).default_behavior = value;
 			renderThresholdGrid();
-		})));
+		}), "threshold-rule-cell threshold-rule-start"));
 		row.appendChild(controlCell(numberInput(climateRule.min_temperature, (value) => {
 			firstClimateRule(ensureThresholdCropRule(rules, crop)).min_temperature = value;
 			renderThresholdGrid();
-		})));
+		}), "threshold-rule-cell"));
 		row.appendChild(controlCell(numberInput(climateRule.max_temperature, (value) => {
 			firstClimateRule(ensureThresholdCropRule(rules, crop)).max_temperature = value;
 			renderThresholdGrid();
-		})));
+		}), "threshold-rule-cell"));
 		row.appendChild(controlCell(requirementSelect(climateRule.precipitation, (value) => {
 			firstClimateRule(ensureThresholdCropRule(rules, crop)).precipitation = value;
 			renderThresholdGrid();
-		})));
+		}), "threshold-rule-cell"));
 		row.appendChild(controlCell(behaviorSelect(climateRule.behavior, (value) => {
 			firstClimateRule(ensureThresholdCropRule(rules, crop)).behavior = value;
 			renderThresholdGrid();
-		})));
-
-		const resetCell = document.createElement("td");
-		const resetButton = document.createElement("button");
-		resetButton.type = "button";
-		resetButton.className = "small-action";
-		resetButton.textContent = "Reset";
-		resetButton.addEventListener("click", () => {
-			delete rules.crops[crop];
-			renderThresholdGrid();
-		});
-		resetCell.appendChild(resetButton);
-		row.appendChild(resetCell);
+		}), "threshold-rule-cell threshold-rule-end"));
 
 		for (const biome of biomes) {
 			const preview = document.createElement("td");
@@ -936,12 +1349,13 @@ function cycleExplicitColumn(rules, biome, crops) {
 
 function filteredCrops() {
 	const crops = collectCrops(state.explicit, state.threshold, state.snapshot);
-	return state.cropFilter ? crops.filter((crop) => crop.toLowerCase().includes(state.cropFilter)) : crops;
+	return state.cropFilter ? crops.filter((crop) => idMatchesText(crop, state.cropFilter)) : crops;
 }
 
 function filteredBiomes() {
 	const biomes = collectBiomes(state.explicit, state.snapshot);
-	return state.biomeFilter ? biomes.filter((biome) => biome.id.toLowerCase().includes(state.biomeFilter)) : biomes;
+	const filter = parseBiomeFilter(state.biomeFilter);
+	return sortBiomes(biomes.filter((biome) => matchesBiomeFilter(biome, filter)), state.biomeSort);
 }
 
 function fillBehaviorSelect(select) {
@@ -984,13 +1398,69 @@ function behaviorButton(behavior) {
 	return button;
 }
 
-function idButton(value, onClick) {
+function compactIdButton(value, onClick) {
 	const button = document.createElement("button");
 	button.type = "button";
 	button.className = "id-button";
-	button.textContent = value;
+	button.textContent = compactId(value);
+	button.title = value;
 	button.addEventListener("click", onClick);
 	return button;
+}
+
+function cropHeaderContent(crop, onFillRow) {
+	const wrapper = document.createElement("div");
+	wrapper.className = "id-heading crop-heading";
+	const label = document.createElement("span");
+	label.className = "id-label";
+	label.textContent = compactId(crop);
+	label.title = crop;
+	const fill = document.createElement("button");
+	fill.type = "button";
+	fill.className = "tiny-action";
+	fill.textContent = "Fill row";
+	fill.title = `${crop} - apply next behavior to this crop across visible biomes`;
+	fill.addEventListener("click", onFillRow);
+	wrapper.append(label, fill);
+	return wrapper;
+}
+
+function thresholdCropHeaderContent(crop, onCycle, onReset) {
+	const wrapper = document.createElement("div");
+	wrapper.className = "id-heading threshold-crop-heading";
+	const label = compactIdButton(crop, onCycle);
+	label.title = `${crop} - cycle unsuitable biome behavior`;
+	const reset = document.createElement("button");
+	reset.type = "button";
+	reset.className = "tiny-action reset-action";
+	reset.textContent = "Reset";
+	reset.title = `${crop} - reset Threshold mode rule`;
+	reset.addEventListener("click", onReset);
+	wrapper.append(label, reset);
+	return wrapper;
+}
+
+function biomeHeader(biome, onFillColumn = null) {
+	const wrapper = document.createElement("div");
+	wrapper.className = "id-heading biome-heading";
+	wrapper.title = biomeTooltip(biome);
+	const label = document.createElement("span");
+	label.className = "id-label";
+	label.textContent = compactId(biome.id);
+	const meta = document.createElement("span");
+	meta.className = "biome-meta";
+	meta.textContent = `${temperatureLabel(biome.temperature)} ${biome.has_precipitation ? "wet" : "dry"}`;
+	wrapper.append(label, meta);
+	if (onFillColumn) {
+		const fill = document.createElement("button");
+		fill.type = "button";
+		fill.className = "tiny-action";
+		fill.textContent = "Fill col";
+		fill.title = `${biome.id} - apply next behavior to this biome across visible crops`;
+		fill.addEventListener("click", onFillColumn);
+		wrapper.append(fill);
+	}
+	return wrapper;
 }
 
 function th(text, className) {
@@ -1001,10 +1471,40 @@ function th(text, className) {
 	return cell;
 }
 
-function controlCell(control) {
+function controlCell(control, className = "") {
 	const cell = document.createElement("td");
+	cell.className = className;
 	cell.appendChild(control);
 	return cell;
+}
+
+function applyTheme(theme) {
+	const selectedTheme = themeOr(theme);
+	document.documentElement.dataset.theme = selectedTheme;
+	refs.themeToggle.textContent = selectedTheme === "dark" ? "Light Mode" : "Dark Mode";
+	refs.themeToggle.title = selectedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode";
+}
+
+function loadThemePreference() {
+	try {
+		if (typeof localStorage === "undefined") {
+			return "dark";
+		}
+		return themeOr(localStorage.getItem(THEME_STORAGE_KEY));
+	} catch (error) {
+		console.debug("Theme preference could not be loaded.", error);
+		return "dark";
+	}
+}
+
+function saveThemePreference(theme) {
+	try {
+		if (typeof localStorage !== "undefined") {
+			localStorage.setItem(THEME_STORAGE_KEY, themeOr(theme));
+		}
+	} catch (error) {
+		console.debug("Theme preference could not be saved.", error);
+	}
 }
 
 function emptyState(text) {
@@ -1074,6 +1574,11 @@ function validateGeneral(general, messages) {
 	if (general.dimensions !== undefined && !isObject(general.dimensions)) {
 		messages.push("general.json: dimensions must be an object");
 		return;
+	}
+	for (const field of ["affects_bonemeal", "affects_block_placement", "affects_village_farm_generation", "chat_info"]) {
+		if (general[field] !== undefined && typeof general[field] !== "boolean") {
+			messages.push(`general.json: ${field} must be true or false`);
+		}
 	}
 	for (const [dimension, mode] of Object.entries(general.dimensions ?? {})) {
 		if (!MODES.includes(mode)) {
@@ -1249,6 +1754,7 @@ function normalizeGeneral(value) {
 		schema_version: 1,
 		affects_bonemeal: booleanOr(value?.affects_bonemeal, true),
 		affects_block_placement: booleanOr(value?.affects_block_placement, true),
+		affects_village_farm_generation: booleanOr(value?.affects_village_farm_generation, true),
 		chat_info: booleanOr(value?.chat_info, true),
 		excluded_blocks: arrayOr(value?.excluded_blocks).filter((id) => typeof id === "string"),
 		fallback_mode: modeOr(value?.fallback_mode),
@@ -1378,6 +1884,10 @@ function modeOr(value) {
 	return MODES.includes(value) ? value : "threshold";
 }
 
+function themeOr(value) {
+	return value === "light" ? "light" : "dark";
+}
+
 function requirementOr(value) {
 	return PRECIPITATION_REQUIREMENTS.includes(value) ? value : "ignored";
 }
@@ -1415,8 +1925,52 @@ function splitIds(value) {
 		.filter(Boolean);
 }
 
-function shortId(value) {
-	return value.includes(":") ? value.split(":")[1] : value;
+export function compactId(value) {
+	const text = String(value ?? "");
+	const separator = text.indexOf(":");
+	if (separator < 0) {
+		return text;
+	}
+	return text.slice(separator + 1);
+}
+
+function idMatchesText(id, text) {
+	const query = String(text ?? "").toLowerCase();
+	if (!query) {
+		return true;
+	}
+	const value = String(id ?? "").toLowerCase();
+	return value.includes(query) || compactId(value).includes(query);
+}
+
+function biomeTooltip(biome) {
+	return `${biome.id} - temperature ${temperatureLabel(biome.temperature)}, ${biome.has_precipitation ? "has precipitation" : "no precipitation"}`;
+}
+
+function temperatureLabel(value) {
+	const number = Number(value);
+	return Number.isFinite(number) ? number.toFixed(2) : "n/a";
+}
+
+function compareNumbers(left, right) {
+	const leftNumber = Number(left);
+	const rightNumber = Number(right);
+	const leftFinite = Number.isFinite(leftNumber);
+	const rightFinite = Number.isFinite(rightNumber);
+	if (leftFinite && rightFinite) {
+		return leftNumber - rightNumber;
+	}
+	if (leftFinite) {
+		return -1;
+	}
+	if (rightFinite) {
+		return 1;
+	}
+	return 0;
+}
+
+function biomeSortOr(value) {
+	return ["name", "temperature", "precipitation"].includes(value) ? value : "name";
 }
 
 function clone(value) {

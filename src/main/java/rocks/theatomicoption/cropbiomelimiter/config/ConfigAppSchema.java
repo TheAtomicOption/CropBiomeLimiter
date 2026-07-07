@@ -20,6 +20,7 @@ public final class ConfigAppSchema {
 		schema.addProperty("config_directory", CONFIG_DIRECTORY_NAME);
 		schema.addProperty("registry_snapshot_file", REGISTRY_SNAPSHOT_FILE_NAME);
 		schema.add("config_files", configFilesJson());
+		schema.add("general_options", generalOptionsJson());
 		schema.add("modes", modesJson());
 		schema.add("behaviors", behaviorsJson());
 		schema.add("behavior_cycle_order", behaviorNamesJson());
@@ -92,6 +93,16 @@ public final class ConfigAppSchema {
 		files.addProperty("explicit_mode", EXPLICIT_MODE_FILE_NAME);
 		files.addProperty("threshold_mode", THRESHOLD_MODE_FILE_NAME);
 		return files;
+	}
+
+	private static JsonObject generalOptionsJson() {
+		JsonObject options = new JsonObject();
+		options.addProperty("affects_bonemeal", "Limits bone meal use in restricted crop climates.");
+		options.addProperty("affects_block_placement", "Limits survival placement in unplantable crop climates.");
+		options.addProperty("affects_village_farm_generation", "Adjusts vanilla village farm crop processors to match Threshold mode defaults.");
+		options.addProperty("chat_info", "Shows player feedback for blocked or warning-only actions.");
+		options.addProperty("excluded_blocks", "Block ids ignored by all crop behavior checks.");
+		return options;
 	}
 
 	private static JsonArray modesJson() {

@@ -182,12 +182,12 @@ public final class CoreBehaviorSmokeTest {
 		Holder<Biome> desert = biomeHolder(id("minecraft:desert"));
 		ExplicitModeRules unplantableRules = new ExplicitModeRules(CropBehavior.UNPLANTABLE, Map.of(wheat, Map.of()));
 
-		CropDecisionService toggledService = decisionService(new GeneralOptions(false, false, true, Set.of()), unplantableRules);
+		CropDecisionService toggledService = decisionService(new GeneralOptions(false, false, true, true, Set.of()), unplantableRules);
 		assertTrue(toggledService.canPlace(Level.OVERWORLD, desert, Blocks.WHEAT), "disabled placement enforcement should allow planting");
 		assertTrue(toggledService.canUseBonemeal(Level.OVERWORLD, desert, Blocks.WHEAT.defaultBlockState()), "disabled bone meal enforcement should allow bone meal");
 		assertTrue(!toggledService.canGrowNaturally(Level.OVERWORLD, desert, Blocks.WHEAT.defaultBlockState()), "natural growth should still follow crop behavior");
 
-		CropDecisionService excludedService = decisionService(new GeneralOptions(true, true, true, Set.of(wheat)), unplantableRules);
+		CropDecisionService excludedService = decisionService(new GeneralOptions(true, true, true, true, Set.of(wheat)), unplantableRules);
 		assertTrue(excludedService.canPlace(Level.OVERWORLD, desert, Blocks.WHEAT), "excluded crops should allow planting");
 		assertTrue(excludedService.canGrowNaturally(Level.OVERWORLD, desert, Blocks.WHEAT.defaultBlockState()), "excluded crops should allow natural growth");
 		assertTrue(excludedService.canUseBonemeal(Level.OVERWORLD, desert, Blocks.WHEAT.defaultBlockState()), "excluded crops should allow bone meal");

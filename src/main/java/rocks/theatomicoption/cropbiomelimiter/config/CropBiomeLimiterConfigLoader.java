@@ -204,15 +204,53 @@ public final class CropBiomeLimiterConfigLoader {
 	}
 
 	private static ExplicitModeFile explicitModeFile(CropBiomeLimiterConfig config) {
-		ExplicitModeRules fallback = config.fallbackRules() instanceof ExplicitModeRules rules
-				? rules
-				: new ExplicitModeRules(defaultBehavior(config.fallbackRules()), Map.of());
+		ExplicitModeRules fallback = explicitRulesFor(config.fallbackRules());
 		Map<ResourceKey<Level>, ExplicitModeRules> dimensions = new LinkedHashMap<>();
 		config.dimensionRules().entrySet().stream()
 				.sorted(Comparator.comparing(entry -> entry.getKey().identifier().toString()))
-				.filter(entry -> entry.getValue() instanceof ExplicitModeRules)
-				.forEach(entry -> dimensions.put(entry.getKey(), (ExplicitModeRules) entry.getValue()));
+				.forEach(entry -> dimensions.put(entry.getKey(), explicitRulesFor(entry.getValue())));
 		return new ExplicitModeFile(fallback, Map.copyOf(dimensions));
+	}
+
+	private static ExplicitModeRules explicitRulesFor(DimensionRules rules) {
+		if (rules instanceof ExplicitModeRules explicitModeRules) {
+			return explicitModeRules;
+		}
+		if (rules instanceof ThresholdModeRules thresholdModeRules) {
+			return explicitRulesFromThreshold(thresholdModeRules);
+		}
+		return new ExplicitModeRules(defaultBehavior(rules), Map.of());
+	}
+
+	private static ExplicitModeRules explicitRulesFromThreshold(ThresholdModeRules rules) {
+		CropBehavior defaultBehavior = rules.defaultRule().defaultBehavior();
+		Map<Identifier, Map<Identifier, CropBehavior>> cropBiomeRules = new LinkedHashMap<>();
+		rules.cropRules().entrySet().stream()
+				.sorted(Comparator.comparing(entry -> entry.getKey().toString()))
+				.forEach(entry -> addExplicitCropRules(entry.getKey(), entry.getValue(), defaultBehavior, cropBiomeRules));
+		return new ExplicitModeRules(defaultBehavior, immutableCropBiomeRules(cropBiomeRules));
+	}
+
+	private static void addExplicitCropRules(Identifier cropId, ThresholdCropRule thresholdRule, CropBehavior explicitDefault, Map<Identifier, Map<Identifier, CropBehavior>> cropBiomeRules) {
+		Map<Identifier, CropBehavior> biomeRules = new LinkedHashMap<>();
+		for (BiomeClimate biome : defaultBiomeClimates()) {
+			CropBehavior behavior = resolveThresholdRule(thresholdRule, biome);
+			if (behavior != explicitDefault) {
+				biomeRules.put(biome.id(), behavior);
+			}
+		}
+		if (!biomeRules.isEmpty()) {
+			cropBiomeRules.put(cropId, biomeRules);
+		}
+	}
+
+	private static CropBehavior resolveThresholdRule(ThresholdCropRule thresholdRule, BiomeClimate biome) {
+		for (ClimateRule climateRule : thresholdRule.climateRules()) {
+			if (climateRule.matches(biome.temperature(), biome.hasPrecipitation())) {
+				return climateRule.behavior();
+			}
+		}
+		return thresholdRule.defaultBehavior();
 	}
 
 	private static ThresholdModeFile thresholdModeFile(CropBiomeLimiterConfig config) {
@@ -259,9 +297,10 @@ public final class CropBiomeLimiterConfigLoader {
 	private static GeneralOptions readGeneralOptions(JsonObject object, GeneralOptions fallback, List<String> diagnostics) {
 		boolean affectsBonemeal = booleanMember(object, "affects_bonemeal", fallback.affectsBonemeal(), "general.affects_bonemeal", diagnostics);
 		boolean affectsBlockPlacement = booleanMember(object, "affects_block_placement", fallback.affectsBlockPlacement(), "general.affects_block_placement", diagnostics);
+		boolean affectsVillageFarmGeneration = booleanMember(object, "affects_village_farm_generation", fallback.affectsVillageFarmGeneration(), "general.affects_village_farm_generation", diagnostics);
 		boolean chatInfo = booleanMember(object, "chat_info", fallback.chatInfo(), "general.chat_info", diagnostics);
 		Set<Identifier> excludedBlocks = identifiers(object.get("excluded_blocks"), fallback.excludedBlocks(), "general.excluded_blocks", diagnostics);
-		return new GeneralOptions(affectsBonemeal, affectsBlockPlacement, chatInfo, excludedBlocks);
+		return new GeneralOptions(affectsBonemeal, affectsBlockPlacement, affectsVillageFarmGeneration, chatInfo, excludedBlocks);
 	}
 
 	private static Map<ResourceKey<Level>, RuleMode> readDimensionModes(JsonElement element, Map<ResourceKey<Level>, RuleMode> fallback, List<String> diagnostics) {
@@ -423,6 +462,7 @@ public final class CropBiomeLimiterConfigLoader {
 		object.addProperty("schema_version", SCHEMA_VERSION);
 		object.addProperty("affects_bonemeal", general.options().affectsBonemeal());
 		object.addProperty("affects_block_placement", general.options().affectsBlockPlacement());
+		object.addProperty("affects_village_farm_generation", general.options().affectsVillageFarmGeneration());
 		object.addProperty("chat_info", general.options().chatInfo());
 		JsonArray excludedBlocks = new JsonArray();
 		general.options().excludedBlocks().stream().map(Object::toString).sorted().forEach(excludedBlocks::add);
@@ -667,6 +707,80 @@ public final class CropBiomeLimiterConfigLoader {
 		}
 	}
 
+	private static List<BiomeClimate> defaultBiomeClimates() {
+		return List.of(
+				biomeClimate("minecraft:the_void", 0.5F, false),
+				biomeClimate("minecraft:plains", 0.8F, true),
+				biomeClimate("minecraft:sunflower_plains", 0.8F, true),
+				biomeClimate("minecraft:snowy_plains", 0.0F, true),
+				biomeClimate("minecraft:ice_spikes", 0.0F, true),
+				biomeClimate("minecraft:desert", 2.0F, false),
+				biomeClimate("minecraft:swamp", 0.8F, true),
+				biomeClimate("minecraft:mangrove_swamp", 0.8F, true),
+				biomeClimate("minecraft:forest", 0.7F, true),
+				biomeClimate("minecraft:flower_forest", 0.7F, true),
+				biomeClimate("minecraft:birch_forest", 0.6F, true),
+				biomeClimate("minecraft:dark_forest", 0.7F, true),
+				biomeClimate("minecraft:pale_garden", 0.7F, true),
+				biomeClimate("minecraft:old_growth_birch_forest", 0.6F, true),
+				biomeClimate("minecraft:old_growth_pine_taiga", 0.3F, true),
+				biomeClimate("minecraft:old_growth_spruce_taiga", 0.25F, true),
+				biomeClimate("minecraft:taiga", 0.25F, true),
+				biomeClimate("minecraft:snowy_taiga", -0.5F, true),
+				biomeClimate("minecraft:savanna", 2.0F, false),
+				biomeClimate("minecraft:savanna_plateau", 2.0F, false),
+				biomeClimate("minecraft:windswept_hills", 0.2F, true),
+				biomeClimate("minecraft:windswept_gravelly_hills", 0.2F, true),
+				biomeClimate("minecraft:windswept_forest", 0.2F, true),
+				biomeClimate("minecraft:windswept_savanna", 2.0F, false),
+				biomeClimate("minecraft:jungle", 0.95F, true),
+				biomeClimate("minecraft:sparse_jungle", 0.95F, true),
+				biomeClimate("minecraft:bamboo_jungle", 0.95F, true),
+				biomeClimate("minecraft:badlands", 2.0F, false),
+				biomeClimate("minecraft:eroded_badlands", 2.0F, false),
+				biomeClimate("minecraft:wooded_badlands", 2.0F, false),
+				biomeClimate("minecraft:meadow", 0.5F, true),
+				biomeClimate("minecraft:cherry_grove", 0.5F, true),
+				biomeClimate("minecraft:grove", -0.2F, true),
+				biomeClimate("minecraft:snowy_slopes", -0.3F, true),
+				biomeClimate("minecraft:frozen_peaks", -0.7F, true),
+				biomeClimate("minecraft:jagged_peaks", -0.7F, true),
+				biomeClimate("minecraft:stony_peaks", 1.0F, true),
+				biomeClimate("minecraft:river", 0.5F, true),
+				biomeClimate("minecraft:frozen_river", 0.0F, true),
+				biomeClimate("minecraft:beach", 0.8F, true),
+				biomeClimate("minecraft:snowy_beach", 0.05F, true),
+				biomeClimate("minecraft:stony_shore", 0.2F, true),
+				biomeClimate("minecraft:warm_ocean", 0.5F, true),
+				biomeClimate("minecraft:lukewarm_ocean", 0.5F, true),
+				biomeClimate("minecraft:deep_lukewarm_ocean", 0.5F, true),
+				biomeClimate("minecraft:ocean", 0.5F, true),
+				biomeClimate("minecraft:deep_ocean", 0.5F, true),
+				biomeClimate("minecraft:cold_ocean", 0.5F, true),
+				biomeClimate("minecraft:deep_cold_ocean", 0.5F, true),
+				biomeClimate("minecraft:frozen_ocean", 0.0F, true),
+				biomeClimate("minecraft:deep_frozen_ocean", 0.5F, true),
+				biomeClimate("minecraft:mushroom_fields", 0.9F, true),
+				biomeClimate("minecraft:dripstone_caves", 0.8F, true),
+				biomeClimate("minecraft:lush_caves", 0.5F, true),
+				biomeClimate("minecraft:deep_dark", 0.8F, true),
+				biomeClimate("minecraft:nether_wastes", 2.0F, false),
+				biomeClimate("minecraft:warped_forest", 2.0F, false),
+				biomeClimate("minecraft:crimson_forest", 2.0F, false),
+				biomeClimate("minecraft:soul_sand_valley", 2.0F, false),
+				biomeClimate("minecraft:basalt_deltas", 2.0F, false),
+				biomeClimate("minecraft:the_end", 0.5F, false),
+				biomeClimate("minecraft:end_highlands", 0.5F, false),
+				biomeClimate("minecraft:end_midlands", 0.5F, false),
+				biomeClimate("minecraft:small_end_islands", 0.5F, false),
+				biomeClimate("minecraft:end_barrens", 0.5F, false)
+		);
+	}
+
+	private static BiomeClimate biomeClimate(String id, float temperature, boolean hasPrecipitation) {
+		return new BiomeClimate(DefaultCropBiomeConfig.id(id), temperature, hasPrecipitation);
+	}
+
 	private record GeneralFile(GeneralOptions options, RuleMode fallbackMode, Map<ResourceKey<Level>, RuleMode> dimensionModes) {
 	}
 
@@ -674,5 +788,8 @@ public final class CropBiomeLimiterConfigLoader {
 	}
 
 	private record ThresholdModeFile(ThresholdModeRules fallback, Map<ResourceKey<Level>, ThresholdModeRules> dimensions) {
+	}
+
+	private record BiomeClimate(Identifier id, float temperature, boolean hasPrecipitation) {
 	}
 }
