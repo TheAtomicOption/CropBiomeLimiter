@@ -1,32 +1,40 @@
+# gradle
+
+.gradle/
+build/
+out/
+classes/
+
 # eclipse
-bin
+
 *.launch
-.settings
-.metadata
+
+# idea
+
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# vscode
+
+.settings/
+.vscode/
+bin/
 .classpath
 .project
 
-# idea
-out
-*.ipr
-*.iws
-*.iml
-.idea
+# macos
 
-# gradle
-build
-.gradle
+*.DS_Store
 
-# other
-eclipse
-run
+# fabric
 
-# Windows image file caches
-Thumbs.db
-ehthumbs.db
+run/
 
-# Folder config file
-Desktop.ini
+# java
 
-# Ignore Agricraft lib
-libs/AgriCraft-master/
+hs_err_*.log
+replay_*.log
+*.hprof
+*.jfr

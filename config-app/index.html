@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Crop Biome Limiter Config</title>
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+	<header class="app-header">
+		<div>
+			<h1>Crop Biome Limiter Config</h1>
+			<p id="statusText">Defaults loaded</p>
+		</div>
+		<div class="toolbar">
+			<label class="file-button">
+				Load JSON
+				<input id="fileInput" type="file" accept="application/json,.json" multiple>
+			</label>
+			<button id="downloadGeneral" type="button">general.json</button>
+			<button id="downloadExplicit" type="button">explicit-mode.json</button>
+			<button id="downloadThreshold" type="button">threshold-mode.json</button>
+			<button id="downloadAll" type="button">All files</button>
+		</div>
+	</header>
+
+	<main class="app-shell">
+		<section class="settings-band" aria-label="Shared settings">
+			<div class="field-row">
+				<label>
+					<span>Dimension</span>
+					<select id="dimensionSelect"></select>
+				</label>
+				<label>
+					<span>Mode</span>
+					<select id="modeSelect">
+						<option value="explicit">Explicit mode</option>
+						<option value="threshold">Threshold mode</option>
+					</select>
+				</label>
+				<label>
+					<span>Copy to</span>
+					<select id="copyDimensionSelect"></select>
+				</label>
+				<button id="copyDimensionRules" type="button">Copy Rules</button>
+				<label class="check-label">
+					<input id="affectsBonemeal" type="checkbox">
+					<span>Bone meal</span>
+				</label>
+				<label class="check-label">
+					<input id="affectsPlacement" type="checkbox">
+					<span>Placement</span>
+				</label>
+				<label class="check-label">
+					<input id="chatInfo" type="checkbox">
+					<span>Chat</span>
+				</label>
+			</div>
+			<label class="wide-field">
+				<span>Excluded blocks</span>
+				<input id="excludedBlocks" type="text" spellcheck="false" placeholder="minecraft:example, minecraft:other_example">
+			</label>
+			<div id="validationList" class="validation-list" aria-live="polite" hidden></div>
+			<div id="dimensionTabs" class="tabs" aria-label="Dimensions"></div>
+		</section>
+
+		<section class="mode-band" aria-label="Mode editor">
+			<div class="subtoolbar">
+				<label>
+					<span>Crops</span>
+					<input id="cropFilter" type="search" spellcheck="false" placeholder="Filter crops">
+				</label>
+				<label>
+					<span>Biomes</span>
+					<input id="biomeFilter" type="search" spellcheck="false" placeholder="Filter biomes">
+				</label>
+				<button id="resetDimension" type="button">Reset Dimension</button>
+			</div>
+
+			<div id="explicitPanel" class="panel">
+				<div class="field-row compact">
+					<label>
+						<span>Default behavior</span>
+						<select id="explicitDefault"></select>
+					</label>
+				</div>
+				<div id="explicitGrid" class="grid-wrap" role="region" aria-label="Explicit mode grid"></div>
+			</div>
+
+			<div id="thresholdPanel" class="panel">
+				<div class="field-row compact">
+					<label>
+						<span>Default behavior</span>
+						<select id="thresholdDefault"></select>
+					</label>
+					<label>
+						<span>Default min</span>
+						<input id="bulkMin" type="number" step="0.05" value="0.15">
+					</label>
+					<label>
+						<span>Default max</span>
+						<input id="bulkMax" type="number" step="0.05" value="1.50">
+					</label>
+					<label>
+						<span>Default precipitation</span>
+						<select id="bulkPrecipitation"></select>
+					</label>
+					<label>
+						<span>Rule behavior</span>
+						<select id="bulkBehavior"></select>
+					</label>
+					<button id="applyThresholdVisible" type="button">Apply To Visible</button>
+				</div>
+				<div id="thresholdGrid" class="grid-wrap" role="region" aria-label="Threshold mode rules"></div>
+			</div>
+		</section>
+	</main>
+
+	<script type="module" src="app.js"></script>
+</body>
+</html>

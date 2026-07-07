@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "cropbiomelimiter",
+	"version": "${version}",
+	"name": "Crop Biome Limiter",
+	"description": "Crops can only grow where they should.",
+	"authors": [
+		"TheAtomicOption"
+	],
+	"contact": {
+		"homepage": "https://www.curseforge.com/minecraft/mc-mods/crop-biome-limiter",
+		"sources": "https://github.com/TheAtomicOption/CropBiomeLimiter"
+	},
+	"license": "All Rights Reserved",
+	"icon": "assets/cropbiomelimiter/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"rocks.theatomicoption.cropbiomelimiter.CropBiomeLimiter"
+		]
+	},
+	"mixins": [
+		"cropbiomelimiter.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
