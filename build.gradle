@@ -41,7 +41,8 @@ processResources {
 		include "styles.css"
 		include "app.js"
 		include "Open Config App.cmd"
-		include "open-config-app.ps1"
+		include "Open Config App.sh"
+		include "Open Config App.command"
 	}
 }
 

@@ -121,6 +121,17 @@ label span {
 	background: #f8fbfa;
 }
 
+.primary-action {
+	background: #dff1ed;
+	border-color: var(--accent);
+	color: #123b35;
+	font-weight: 700;
+}
+
+[hidden] {
+	display: none !important;
+}
+
 .file-button input {
 	position: absolute;
 	inline-size: 1px;

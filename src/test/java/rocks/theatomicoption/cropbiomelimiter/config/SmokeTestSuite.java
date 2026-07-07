@@ -13,6 +13,7 @@ public final class SmokeTestSuite {
 
 		ConfigLoaderSmokeTest.run();
 		ConfigAppInstallerSmokeTest.run();
+		ConfigAppServerSmokeTest.run();
 		CoreBehaviorSmokeTest.run();
 	}
 }

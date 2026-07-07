@@ -14,6 +14,7 @@ public final class ConfigAppInstallerSmokeTest {
 	public static void run() throws IOException {
 		writesConfigAppWhenMissing();
 		recreatesDeletedConfigAppFiles();
+		refreshesChangedConfigAppFiles();
 	}
 
 	private static void writesConfigAppWhenMissing() throws IOException {
@@ -28,10 +29,13 @@ public final class ConfigAppInstallerSmokeTest {
 				"styles.css",
 				"app.js",
 				"Open Config App.cmd",
-				"open-config-app.ps1"
+				"Open Config App.sh",
+				"Open Config App.command"
 		), result.createdFiles(), "startup should report all restored config app files");
 		assertTrue(Files.isDirectory(appDirectory), "config app directory should exist");
 		assertTrue(Files.exists(appDirectory.resolve("Open Config App.cmd")), "double-click launcher should exist");
+		assertTrue(Files.exists(appDirectory.resolve("Open Config App.sh")), "Linux launcher should exist");
+		assertTrue(Files.exists(appDirectory.resolve("Open Config App.command")), "macOS launcher should exist");
 		assertTrue(Files.readString(appDirectory.resolve("README.md")).contains("No Python"), "README should describe non-developer launch");
 		assertTrue(Files.readString(appDirectory.resolve("index.html")).contains("app.js"), "index should load the app script");
 
@@ -48,6 +52,17 @@ public final class ConfigAppInstallerSmokeTest {
 		ConfigAppInstallResult result = ConfigAppInstaller.tryInstall(directory);
 		assertEquals(List.of("app.js"), result.createdFiles(), "startup should restore deleted config app files");
 		assertTrue(Files.exists(appScript), "deleted config app file should be restored");
+	}
+
+	private static void refreshesChangedConfigAppFiles() throws IOException {
+		Path directory = Files.createTempDirectory("cropbiomelimiter-config-app-changed-test");
+		ConfigAppInstaller.tryInstall(directory);
+		Path launcher = appDirectory(directory).resolve("Open Config App.cmd");
+		Files.writeString(launcher, "old launcher");
+
+		ConfigAppInstallResult result = ConfigAppInstaller.tryInstall(directory);
+		assertEquals(List.of("Open Config App.cmd"), result.createdFiles(), "startup should refresh changed bundled config app files");
+		assertTrue(Files.readString(launcher).contains("ConfigAppServer"), "changed launcher should be refreshed from bundled resources");
 	}
 
 	private static Path appDirectory(Path minecraftConfigDirectory) {

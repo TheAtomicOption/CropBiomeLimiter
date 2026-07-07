@@ -174,7 +174,12 @@ const state = {
 	cropFilter: "",
 	biomeFilter: "",
 	status: "Defaults loaded",
-	importMessages: []
+	importMessages: [],
+	helper: {
+		available: false,
+		configDirectory: "",
+		message: "Manual import/export"
+	}
 };
 
 let refs = {};
@@ -297,6 +302,8 @@ function init() {
 	refs = {
 		fileInput: document.getElementById("fileInput"),
 		statusText: document.getElementById("statusText"),
+		loadInstalled: document.getElementById("loadInstalled"),
+		saveInstalled: document.getElementById("saveInstalled"),
 		downloadGeneral: document.getElementById("downloadGeneral"),
 		downloadExplicit: document.getElementById("downloadExplicit"),
 		downloadThreshold: document.getElementById("downloadThreshold"),
@@ -334,9 +341,17 @@ function init() {
 	refs.bulkBehavior.value = "growable";
 	bindEvents();
 	render();
+	connectHelper();
 }
 
 function bindEvents() {
+	refs.loadInstalled.addEventListener("click", async () => {
+		await loadInstalledConfig();
+		render();
+	});
+	refs.saveInstalled.addEventListener("click", async () => {
+		await saveInstalledConfig();
+	});
 	refs.fileInput.addEventListener("change", async () => {
 		await loadFiles(refs.fileInput.files);
 		refs.fileInput.value = "";
@@ -402,6 +417,122 @@ function bindEvents() {
 		applyThresholdTemplateToVisible();
 		renderThresholdGrid();
 	});
+}
+
+async function connectHelper() {
+	if (typeof fetch !== "function" || typeof window === "undefined" || window.location.protocol === "file:") {
+		renderHelperControls();
+		return;
+	}
+
+	try {
+		const response = await fetch("/api/status", { cache: "no-store" });
+		if (!response.ok) {
+			throw new Error(`helper status ${response.status}`);
+		}
+		const status = await response.json();
+		state.helper = {
+			available: true,
+			configDirectory: status.configDirectory ?? "",
+			message: "Connected to installed config folder"
+		};
+		await loadInstalledConfig();
+		render();
+	} catch (error) {
+		console.debug("Config helper API is not available.", error);
+		state.helper = {
+			available: false,
+			configDirectory: "",
+			message: "Manual import/export"
+		};
+		renderHelperControls();
+	}
+}
+
+function renderHelperControls() {
+	refs.loadInstalled.hidden = !state.helper.available;
+	refs.saveInstalled.hidden = !state.helper.available;
+}
+
+async function loadInstalledConfig() {
+	if (!state.helper.available) {
+		return;
+	}
+
+	const loaded = [];
+	const messages = [];
+	await loadInstalledFile("general", FILE_NAMES.general, (json) => {
+		state.general = normalizeGeneral(json);
+	}, loaded, messages);
+	await loadInstalledFile("explicit", FILE_NAMES.explicit, (json) => {
+		state.explicit = normalizeExplicit(json);
+	}, loaded, messages);
+	await loadInstalledFile("threshold", FILE_NAMES.threshold, (json) => {
+		state.threshold = normalizeThreshold(json);
+	}, loaded, messages);
+	await loadInstalledFile("snapshot", FILE_NAMES.snapshot, (json) => {
+		state.snapshot = json;
+	}, loaded, messages, true);
+
+	state.importMessages = messages;
+	if (loaded.length > 0) {
+		state.status = `Loaded ${loaded.length} installed config file${loaded.length === 1 ? "" : "s"}`;
+	} else {
+		state.status = "Installed config files not found";
+	}
+}
+
+async function loadInstalledFile(key, fileName, apply, loaded, messages, optional = false) {
+	try {
+		const response = await fetch(`/api/files/${key}`, { cache: "no-store" });
+		if (response.status === 404 && optional) {
+			return;
+		}
+		if (!response.ok) {
+			throw new Error(`HTTP ${response.status}`);
+		}
+		const json = await response.json();
+		messages.push(...validateLoadedFile(fileName, json));
+		apply(json);
+		loaded.push(fileName);
+	} catch (error) {
+		messages.push(`${fileName}: could not load from installed config folder`);
+		console.error(error);
+	}
+}
+
+async function saveInstalledConfig() {
+	if (!state.helper.available) {
+		return;
+	}
+
+	const messages = [];
+	let saved = 0;
+	saved += await saveInstalledFile("general", FILE_NAMES.general, state.general, messages);
+	saved += await saveInstalledFile("explicit", FILE_NAMES.explicit, state.explicit, messages);
+	saved += await saveInstalledFile("threshold", FILE_NAMES.threshold, state.threshold, messages);
+
+	state.importMessages = messages;
+	state.status = `Saved ${saved} installed config file${saved === 1 ? "" : "s"}`;
+	render();
+}
+
+async function saveInstalledFile(key, fileName, value, messages) {
+	try {
+		const response = await fetch(`/api/files/${key}`, {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: `${JSON.stringify(value, null, 2)}\n`
+		});
+		if (!response.ok) {
+			throw new Error(`HTTP ${response.status}`);
+		}
+		return 1;
+	} catch (error) {
+		messages.push(`${fileName}: could not save to installed config folder`);
+		console.error(error);
+		return 0;
+	}
 }
 
 async function loadFiles(files) {
@@ -471,10 +602,12 @@ function render() {
 
 function renderStatus() {
 	const snapshotCount = state.snapshot ? `${arrayOr(state.snapshot.biomes).length} biomes, ${arrayOr(state.snapshot.crops).length} crops` : "vanilla fallback lists";
-	refs.statusText.textContent = `${state.status} - ${snapshotCount}`;
+	const helperStatus = state.helper.available ? `connected to ${state.helper.configDirectory}` : state.helper.message;
+	refs.statusText.textContent = `${state.status} - ${snapshotCount} - ${helperStatus}`;
 }
 
 function renderSettings(dimensions) {
+	renderHelperControls();
 	setOptions(refs.dimensionSelect, dimensions, state.selectedDimension);
 	const copyTargets = dimensions.filter((dimension) => dimension !== state.selectedDimension);
 	setOptions(refs.copyDimensionSelect, copyTargets, copyTargets[0] ?? "");

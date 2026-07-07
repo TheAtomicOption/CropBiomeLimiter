@@ -16,7 +16,13 @@ The standalone config editor is bundled inside the mod jar. After Minecraft star
 
 `config/cropbiomelimiter/config-app`
 
-On Windows, open the editor by double-clicking `Open Config App.cmd` in that folder. The launcher starts a local app server and opens the editor in your default browser, with no Python, npm, or developer tools required.
+Open the editor by running the launcher for your operating system in that folder:
+
+- Windows: `Open Config App.cmd`
+- Linux: `Open Config App.sh`
+- macOS: `Open Config App.command`
+
+The launcher starts the Java helper from the installed mod jar, opens the editor in your default browser, and lets the app save the split config files directly. No Python, npm, PowerShell, or developer tools are required.
 
 ## Config
 
