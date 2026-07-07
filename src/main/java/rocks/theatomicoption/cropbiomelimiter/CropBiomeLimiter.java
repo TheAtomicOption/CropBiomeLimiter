@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rocks.theatomicoption.cropbiomelimiter.commands.RegistrySnapshotCommand;
 import rocks.theatomicoption.cropbiomelimiter.config.ConfigLoadResult;
+import rocks.theatomicoption.cropbiomelimiter.config.ConfigAppInstaller;
+import rocks.theatomicoption.cropbiomelimiter.config.ConfigAppInstaller.ConfigAppInstallResult;
 import rocks.theatomicoption.cropbiomelimiter.config.CropBiomeLimiterConfigLoader;
 import rocks.theatomicoption.cropbiomelimiter.events.PlayerActionHandler;
 import rocks.theatomicoption.cropbiomelimiter.logic.CropDecisionService;
@@ -52,12 +54,31 @@ public class CropBiomeLimiter implements ModInitializer {
 
 	private static Optional<DecisionServiceResult> tryCreateDecisionService() {
 		try {
-			ConfigLoadResult loadResult = CropBiomeLimiterConfigLoader.tryLoadConfig(FabricLoader.getInstance().getConfigDir());
+			Path minecraftConfigDirectory = FabricLoader.getInstance().getConfigDir();
+			ConfigAppInstallResult appInstallResult = ConfigAppInstaller.tryInstall(minecraftConfigDirectory);
+			logConfigAppResult(appInstallResult);
+			ConfigLoadResult loadResult = CropBiomeLimiterConfigLoader.tryLoadConfig(minecraftConfigDirectory);
 			logConfigResult(loadResult);
 			return Optional.of(new DecisionServiceResult(new CropDecisionService(loadResult.config(), new GrowableBlockClassifier()), loadResult));
 		} catch (RuntimeException exception) {
 			LOGGER.error("Crop Biome Limiter failed to create its decision service. Gameplay will be allowed by default.", exception);
 			return Optional.empty();
+		}
+	}
+
+	private static void logConfigAppResult(ConfigAppInstallResult installResult) {
+		try {
+			if (installResult.createdDefault()) {
+				LOGGER.info("Crop Biome Limiter restored missing config app file(s) {} in {}.", installResult.createdFileSummary(), installResult.path());
+			}
+			if (installResult.hasDiagnostics()) {
+				LOGGER.warn("Crop Biome Limiter installed config app files in {} with {} warning(s).", installResult.path(), installResult.diagnosticCount());
+			}
+			for (String diagnostic : installResult.diagnostics()) {
+				LOGGER.warn("Crop Biome Limiter config app: {}", diagnostic);
+			}
+		} catch (RuntimeException exception) {
+			LOGGER.debug("Crop Biome Limiter could not report config app diagnostics.", exception);
 		}
 	}
 

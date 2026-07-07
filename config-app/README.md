@@ -1,12 +1,20 @@
 # Crop Biome Limiter Config App
 
-Run the app as local static files, then open the printed local URL in a browser.
+For normal use on Windows, double-click:
 
-```powershell
-python -m http.server 41731
-```
+`Open Config App.cmd`
 
-If Python is not on `PATH`, any static file server works. The app does not connect to Minecraft and does not require a running client or server.
+The launcher starts a local app server and opens the config app in your default browser. Keep the launcher window open while using the app, then close it when you are done.
+
+When installed through the mod jar, Minecraft creates this app at:
+
+`config/cropbiomelimiter/config-app`
+
+No Python, npm, or developer tools are required for normal use.
+
+Manual fallback:
+
+If the launcher cannot run, any static file server works. The app does not connect to Minecraft and does not require a running client or server.
 
 Load any combination of:
 

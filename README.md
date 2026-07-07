@@ -12,7 +12,11 @@ Crops can only grow where they should. The rewrite starts from a clean Fabric sc
 
 Manual in-game smoke-test notes are in [docs/manual-smoke-test.md](docs/manual-smoke-test.md).
 
-The standalone config editor is in [config-app](config-app). It runs as a local static app; serve that folder with any static file server, then open the local URL in a browser.
+The standalone config editor is bundled inside the mod jar. After Minecraft starts once with the mod installed, the jar restores the app to:
+
+`config/cropbiomelimiter/config-app`
+
+On Windows, open the editor by double-clicking `Open Config App.cmd` in that folder. The launcher starts a local app server and opens the editor in your default browser, with no Python, npm, or developer tools required.
 
 ## Config
 
@@ -21,6 +25,7 @@ The Fabric rewrite uses a clean split config folder at `config/cropbiomelimiter`
 - `general.json` for shared toggles and dimension mode selection.
 - `explicit-mode.json` for biome-first Explicit mode rules.
 - `threshold-mode.json` for crop-first Threshold mode rules.
+- `config-app` for the bundled standalone editor and one-click launcher.
 
 The old single-file config format is intentionally not supported.
 

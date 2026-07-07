@@ -12,6 +12,7 @@ public final class SmokeTestSuite {
 		Bootstrap.bootStrap();
 
 		ConfigLoaderSmokeTest.run();
+		ConfigAppInstallerSmokeTest.run();
 		CoreBehaviorSmokeTest.run();
 	}
 }

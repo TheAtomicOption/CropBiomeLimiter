@@ -34,6 +34,15 @@ processResources {
 	filesMatching("fabric.mod.json") {
 		expand "version": version
 	}
+	from("config-app") {
+		into "config-app"
+		include "README.md"
+		include "index.html"
+		include "styles.css"
+		include "app.js"
+		include "Open Config App.cmd"
+		include "open-config-app.ps1"
+	}
 }
 
 tasks.withType(JavaCompile).configureEach {
