@@ -6,7 +6,7 @@ Crops can only grow where they should. The rewrite starts from a clean Fabric sc
 
 ## Development
 
-```powershell
+```console
 .\gradlew.bat build
 ```
 
@@ -22,7 +22,7 @@ Open the editor by running the launcher for your operating system in that folder
 - Linux: `Open Config App.sh`
 - macOS: `Open Config App.command`
 
-The launcher starts the Java helper from the installed mod jar, opens the editor in your default browser, and lets the app save the split config files directly. No Python, npm, PowerShell, or developer tools are required.
+The launcher starts the Java helper from the installed mod jar, opens the editor in your default browser, and lets the app save the split config files directly.
 
 ## Config
 

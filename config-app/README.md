@@ -12,8 +12,6 @@ Use the launcher for your operating system:
 
 The launcher starts the Java helper from the installed mod jar, opens the config app in your default browser, and lets the app save `general.json`, `explicit-mode.json`, and `threshold-mode.json` directly. Keep the launcher window open while using the app, then close it when you are done.
 
-No Python, npm, PowerShell, or developer tools are required for normal use.
-
 Manual fallback:
 
 If the launcher cannot run, any static file server works, but direct saving is available only through the Java helper. The browser-only fallback can still load JSON files and download edited replacements. The app does not connect to Minecraft and does not require a running client or server.
@@ -31,6 +29,6 @@ The app validates loaded files, supports copying the active dimension mode/rules
 
 Developer smoke test:
 
-```powershell
+```console
 npm test
 ```
