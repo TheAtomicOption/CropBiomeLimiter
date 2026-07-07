@@ -6,6 +6,10 @@ plugins {
 version = project.mod_version
 group = project.maven_group
 
+base {
+	archivesName = "${project.name}-${project.minecraft_version}"
+}
+
 repositories {
 	// Loom adds the essential Maven repositories for Minecraft and Fabric automatically.
 }
