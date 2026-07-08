@@ -83,7 +83,7 @@ All checks in this section should be done in a plains biome.
 | `growable` wheat placement | Place wheat seeds on farmland | Placement succeeds |
 | `growable` wheat bonemeal | Use bone meal on planted wheat | Bone meal succeeds and may advance growth |
 | `growable` wheat random growth | Set random tick speed high and wait | Wheat can grow naturally |
-| `bonemeal-required` carrot placement | Place carrot on farmland | Placement succeeds and prints the climate warning |
+| `bonemeal-required` carrot placement | Place carrot on farmland | Placement succeeds and prints "The young plant begins to wilt in this foreign biome." |
 | `bonemeal-required` carrot bonemeal | Use bone meal on planted carrots | Bone meal succeeds and may advance growth |
 | `bonemeal-required` carrot random growth | Set random tick speed high and wait | When a natural growth tick would advance the immature carrot, it is replaced with dead bush |
 | `unplantable` potato placement | Place potato on farmland | Placement is denied and the item is not consumed |
@@ -112,8 +112,8 @@ Use generated defaults and test from biomes with clear temperature and precipita
 | hot dry | `minecraft:desert` | cactus | Planting and bone meal behavior are allowed by the hot/dry rule; natural growth is allowed |
 | hot wet | `minecraft:jungle` | cocoa or jungle sapling | Planting and bone meal succeed; natural growth is allowed |
 | cold wet | `minecraft:snowy_plains` | spruce sapling or sweet berry bush | Planting and bone meal succeed; natural growth is allowed |
-| wrong climate | `minecraft:desert` | wheat | Planting succeeds with the climate warning and bone meal succeeds; when natural growth would advance the immature wheat, it is replaced with dead bush |
-| wrong climate | `minecraft:snowy_plains` | cactus | Placement succeeds with the climate warning; when natural growth would advance it, it is replaced with dead bush |
+| wrong climate | `minecraft:desert` | wheat | Planting succeeds with the wilt warning and bone meal succeeds; when natural growth would advance the immature wheat, it is replaced with dead bush |
+| wrong climate | `minecraft:snowy_plains` | cactus | Placement succeeds with the wilt warning; when natural growth would advance it, it is replaced with dead bush |
 | wrong dimension crop | Overworld | nether wart | Default Overworld Threshold mode makes it bonemeal-required, so placement warns and natural growth withers on a successful growth tick |
 | creative mode bypass | Any prohibited crop/biome pair | any denied crop | Placement and bone meal are not blocked by the mod while the player is in creative mode |
 

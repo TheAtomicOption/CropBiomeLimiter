@@ -24,7 +24,11 @@ import net.minecraft.world.phys.BlockHitResult;
 import rocks.theatomicoption.cropbiomelimiter.CropBiomeLimiter;
 
 public final class PlayerActionHandler {
-	private static final Component CANNOT_GROW_MESSAGE = Component.literal("This plant can't grow in this climate.");
+	static final String BLOCKED_MESSAGE_KEY = "message.cropbiomelimiter.blocked";
+	static final String ALLOWED_PLACEMENT_WARNING_KEY = "message.cropbiomelimiter.allowed_placement_warning";
+
+	private static final Component BLOCKED_MESSAGE = Component.translatable(BLOCKED_MESSAGE_KEY);
+	private static final Component ALLOWED_PLACEMENT_WARNING = Component.translatable(ALLOWED_PLACEMENT_WARNING_KEY);
 
 	private PlayerActionHandler() {
 	}
@@ -151,21 +155,21 @@ public final class PlayerActionHandler {
 
 	public static InteractionResult blocked(Level level, Player player) {
 		if (level == null || !level.isClientSide()) {
-			notifyPlayer(player);
+			notifyPlayer(player, BLOCKED_MESSAGE);
 		}
 		return InteractionResult.FAIL;
 	}
 
 	public static void warnAllowedPlacement(Level level, Player player) {
 		if (level == null || !level.isClientSide()) {
-			notifyPlayer(player);
+			notifyPlayer(player, ALLOWED_PLACEMENT_WARNING);
 		}
 	}
 
-	private static void notifyPlayer(Player player) {
+	private static void notifyPlayer(Player player, Component message) {
 		try {
 			if (player != null && CropBiomeLimiter.cropDecisionService().shouldSendChatInfo()) {
-				player.sendSystemMessage(CANNOT_GROW_MESSAGE);
+				player.sendSystemMessage(message);
 			}
 		} catch (RuntimeException exception) {
 			CropBiomeLimiter.LOGGER.debug("Could not send Crop Biome Limiter chat feedback.", exception);

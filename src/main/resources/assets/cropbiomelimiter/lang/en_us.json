@@ -1,0 +1,4 @@
+{
+  "message.cropbiomelimiter.blocked": "This plant can't grow in this climate.",
+  "message.cropbiomelimiter.allowed_placement_warning": "The young plant begins to wilt in this foreign biome."
+}
