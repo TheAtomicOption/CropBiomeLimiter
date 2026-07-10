@@ -30,6 +30,7 @@ public final class CoreBehaviorSmokeTest {
 		decisionServiceAppliesConfiguredBehaviorToActions();
 		defaultThresholdConfigAllowsAndWarnsWrongClimateCactusPlacement();
 		decisionServiceWithersOnlyPlantingAllowedNaturalGrowthDenials();
+		unplantableSaplingsDenyPlacement();
 		creativeModeBypassesPlayerActionRestrictions();
 		decisionServiceHonorsTogglesExclusionsAndFallbacks();
 	}
@@ -162,6 +163,20 @@ public final class CoreBehaviorSmokeTest {
 		assertTrue(!service.shouldWitherOnSuccessfulNaturalGrowth(Level.OVERWORLD, biomeHolder(desert), Blocks.DEAD_BUSH.defaultBlockState()), "dead bush should not be controlled by natural growth rules");
 		assertTrue(!service.shouldWarnOnAllowedPlacement(Level.OVERWORLD, biomeHolder(desert), Blocks.DEAD_BUSH.defaultBlockState()), "dead bush placement should not warn");
 		assertTrue(service.canPlace(Level.OVERWORLD, biomeHolder(snowyPlains), Blocks.DEAD_BUSH.defaultBlockState()), "dead bush placement should not be blocked by the mod");
+	}
+
+	private static void unplantableSaplingsDenyPlacement() {
+		ResourceLocation acacia = id("minecraft:acacia_sapling");
+		ResourceLocation plains = id("minecraft:plains");
+		ExplicitModeRules rules = new ExplicitModeRules(
+				CropBehavior.GROWABLE,
+				Map.of(acacia, Map.of(plains, CropBehavior.UNPLANTABLE))
+		);
+		CropDecisionService service = decisionService(GeneralOptions.defaults(), rules);
+
+		assertTrue(!service.canPlace(Level.OVERWORLD, biomeHolder(plains), Blocks.ACACIA_SAPLING.defaultBlockState()), "unplantable saplings should deny placement");
+		assertTrue(!service.canUseBonemeal(Level.OVERWORLD, biomeHolder(plains), Blocks.ACACIA_SAPLING.defaultBlockState()), "unplantable saplings should deny bone meal");
+		assertTrue(!service.shouldWarnOnAllowedPlacement(Level.OVERWORLD, biomeHolder(plains), Blocks.ACACIA_SAPLING.defaultBlockState()), "unplantable saplings should block instead of warning as allowed placement");
 	}
 
 	private static void creativeModeBypassesPlayerActionRestrictions() {

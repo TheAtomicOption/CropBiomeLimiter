@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import net.minecraft.world.InteractionResult;
 
 public final class PlayerActionHandlerSmokeTest {
 	private PlayerActionHandlerSmokeTest() {
@@ -18,6 +19,8 @@ public final class PlayerActionHandlerSmokeTest {
 		assertEquals("message.cropbiomelimiter.allowed_placement_warning", PlayerActionHandler.ALLOWED_PLACEMENT_WARNING_KEY, "allowed placement warning should use a stable translation key");
 		assertTranslation(translations, PlayerActionHandler.BLOCKED_MESSAGE_KEY, "This plant can't grow in this climate.");
 		assertTranslation(translations, PlayerActionHandler.ALLOWED_PLACEMENT_WARNING_KEY, "The young plant begins to wilt in this foreign biome.");
+		assertEquals(InteractionResult.PASS, PlayerActionHandler.onUseOnBlock(null), "UseBlockCallback fallback must return PASS instead of null");
+		assertEquals(InteractionResult.FAIL, PlayerActionHandler.blocked(null, null), "blocked placement must return FAIL");
 	}
 
 	private static JsonObject translations() throws IOException {
