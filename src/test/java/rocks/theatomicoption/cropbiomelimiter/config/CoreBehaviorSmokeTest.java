@@ -6,7 +6,7 @@ import java.util.Set;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
@@ -62,9 +62,9 @@ public final class CoreBehaviorSmokeTest {
 	}
 
 	private static void explicitModeUsesBiomeCells() {
-		Identifier wheat = id("minecraft:wheat");
-		Identifier desert = id("minecraft:desert");
-		Identifier snowyPlains = id("minecraft:snowy_plains");
+		ResourceLocation wheat = id("minecraft:wheat");
+		ResourceLocation desert = id("minecraft:desert");
+		ResourceLocation snowyPlains = id("minecraft:snowy_plains");
 		ExplicitModeRules rules = new ExplicitModeRules(
 				CropBehavior.GROWABLE,
 				Map.of(wheat, Map.of(
@@ -80,7 +80,7 @@ public final class CoreBehaviorSmokeTest {
 	}
 
 	private static void thresholdModeUsesTemperatureAndPrecipitation() {
-		Identifier wheat = id("minecraft:wheat");
+		ResourceLocation wheat = id("minecraft:wheat");
 		ThresholdCropRule wheatRule = new ThresholdCropRule(
 				CropBehavior.BONEMEAL_REQUIRED,
 				List.of(
@@ -100,10 +100,10 @@ public final class CoreBehaviorSmokeTest {
 	}
 
 	private static void decisionServiceAppliesConfiguredBehaviorToActions() {
-		Identifier wheat = id("minecraft:wheat");
-		Identifier desert = id("minecraft:desert");
-		Identifier snowyPlains = id("minecraft:snowy_plains");
-		Identifier plains = id("minecraft:plains");
+		ResourceLocation wheat = id("minecraft:wheat");
+		ResourceLocation desert = id("minecraft:desert");
+		ResourceLocation snowyPlains = id("minecraft:snowy_plains");
+		ResourceLocation plains = id("minecraft:plains");
 		ExplicitModeRules rules = new ExplicitModeRules(
 				CropBehavior.GROWABLE,
 				Map.of(wheat, Map.of(
@@ -140,10 +140,10 @@ public final class CoreBehaviorSmokeTest {
 	}
 
 	private static void decisionServiceWithersOnlyPlantingAllowedNaturalGrowthDenials() {
-		Identifier wheat = id("minecraft:wheat");
-		Identifier desert = id("minecraft:desert");
-		Identifier snowyPlains = id("minecraft:snowy_plains");
-		Identifier plains = id("minecraft:plains");
+		ResourceLocation wheat = id("minecraft:wheat");
+		ResourceLocation desert = id("minecraft:desert");
+		ResourceLocation snowyPlains = id("minecraft:snowy_plains");
+		ResourceLocation plains = id("minecraft:plains");
 		ExplicitModeRules rules = new ExplicitModeRules(
 				CropBehavior.GROWABLE,
 				Map.of(wheat, Map.of(
@@ -165,7 +165,7 @@ public final class CoreBehaviorSmokeTest {
 	}
 
 	private static void creativeModeBypassesPlayerActionRestrictions() {
-		Identifier wheat = id("minecraft:wheat");
+		ResourceLocation wheat = id("minecraft:wheat");
 		Holder<Biome> desert = biomeHolder(id("minecraft:desert"));
 		ExplicitModeRules unplantableRules = new ExplicitModeRules(CropBehavior.UNPLANTABLE, Map.of(wheat, Map.of()));
 		CropDecisionService service = decisionService(GeneralOptions.defaults(), unplantableRules);
@@ -178,7 +178,7 @@ public final class CoreBehaviorSmokeTest {
 	}
 
 	private static void decisionServiceHonorsTogglesExclusionsAndFallbacks() {
-		Identifier wheat = id("minecraft:wheat");
+		ResourceLocation wheat = id("minecraft:wheat");
 		Holder<Biome> desert = biomeHolder(id("minecraft:desert"));
 		ExplicitModeRules unplantableRules = new ExplicitModeRules(CropBehavior.UNPLANTABLE, Map.of(wheat, Map.of()));
 
@@ -199,11 +199,11 @@ public final class CoreBehaviorSmokeTest {
 		assertTrue(CropDecisionService.allowAll().canPlace(null, null, (Block) null), "allow-all service should fail open");
 	}
 
-	private static Identifier id(String value) {
-		return Identifier.parse(value);
+	private static ResourceLocation id(String value) {
+		return ResourceLocation.parse(value);
 	}
 
-	private static Holder<Biome> biomeHolder(Identifier biomeId) {
+	private static Holder<Biome> biomeHolder(ResourceLocation biomeId) {
 		ResourceKey<Biome> key = ResourceKey.create(Registries.BIOME, biomeId);
 		return Holder.Reference.createStandAlone(null, key);
 	}
@@ -215,6 +215,9 @@ public final class CoreBehaviorSmokeTest {
 				.downfall(hasPrecipitation ? 1.0F : 0.0F)
 				.specialEffects(new BiomeSpecialEffects.Builder()
 						.waterColor(0)
+						.waterFogColor(0)
+						.fogColor(0)
+						.skyColor(0)
 						.build())
 				.mobSpawnSettings(MobSpawnSettings.EMPTY)
 				.generationSettings(BiomeGenerationSettings.EMPTY)

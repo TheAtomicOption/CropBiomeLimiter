@@ -3,7 +3,7 @@ package rocks.theatomicoption.cropbiomelimiter.logic;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
@@ -264,7 +264,7 @@ public final class CropDecisionService {
 			return false;
 		}
 
-		Identifier blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock());
+		ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock());
 		if (blockId == null) {
 			return false;
 		}
@@ -277,7 +277,7 @@ public final class CropDecisionService {
 			return CropBehavior.GROWABLE;
 		}
 
-		Identifier cropId = BuiltInRegistries.BLOCK.getKey(crop);
+		ResourceLocation cropId = BuiltInRegistries.BLOCK.getKey(crop);
 		if (cropId == null) {
 			return CropBehavior.GROWABLE;
 		}

@@ -8,7 +8,6 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.server.permissions.Permissions;
 import rocks.theatomicoption.cropbiomelimiter.CropBiomeLimiter;
 
 public final class RegistrySnapshotCommand {
@@ -44,7 +43,7 @@ public final class RegistrySnapshotCommand {
 
 	private static boolean canUseAdminCommands(CommandSourceStack source) {
 		try {
-			return source.permissions().hasPermission(Permissions.COMMANDS_ADMIN);
+			return source.hasPermission(2);
 		} catch (RuntimeException exception) {
 			CropBiomeLimiter.LOGGER.warn("Hiding Crop Biome Limiter admin commands because permission evaluation failed: {}", exception.toString());
 			CropBiomeLimiter.LOGGER.debug("Crop Biome Limiter command permission failure details.", exception);

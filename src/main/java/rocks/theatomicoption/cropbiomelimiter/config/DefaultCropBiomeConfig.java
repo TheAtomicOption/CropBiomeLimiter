@@ -5,7 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import rocks.theatomicoption.cropbiomelimiter.CropBiomeLimiter;
 
@@ -38,48 +38,48 @@ public final class DefaultCropBiomeConfig {
 		);
 	}
 
-	public static Identifier id(String value) {
+	public static ResourceLocation id(String value) {
 		return tryId(value).orElseGet(() -> CropBiomeLimiter.id("invalid"));
 	}
 
-	public static Optional<Identifier> tryId(String value) {
+	public static Optional<ResourceLocation> tryId(String value) {
 		if (value == null || value.isBlank()) {
 			return Optional.empty();
 		}
 
 		try {
-			return Optional.of(Identifier.parse(value));
+			return Optional.of(ResourceLocation.parse(value));
 		} catch (RuntimeException exception) {
-			CropBiomeLimiter.LOGGER.debug("Ignoring invalid configured identifier: {}", value, exception);
+			CropBiomeLimiter.LOGGER.debug("Ignoring invalid configured ResourceLocation: {}", value, exception);
 			return Optional.empty();
 		}
 	}
 
-	private static Map<Identifier, ThresholdCropRule> vanillaOverworldCropRules() {
-		Map<Identifier, ThresholdCropRule> rules = new LinkedHashMap<>();
+	private static Map<ResourceLocation, ThresholdCropRule> vanillaOverworldCropRules() {
+		Map<ResourceLocation, ThresholdCropRule> rules = new LinkedHashMap<>();
 		putOverworldCropRules(rules, true);
 		putNetherCropRules(rules, false);
 		putEndCropRules(rules, false);
 		return Map.copyOf(rules);
 	}
 
-	private static Map<Identifier, ThresholdCropRule> vanillaNetherCropRules() {
-		Map<Identifier, ThresholdCropRule> rules = new LinkedHashMap<>();
+	private static Map<ResourceLocation, ThresholdCropRule> vanillaNetherCropRules() {
+		Map<ResourceLocation, ThresholdCropRule> rules = new LinkedHashMap<>();
 		putOverworldCropRules(rules, false);
 		putNetherCropRules(rules, true);
 		putEndCropRules(rules, false);
 		return Map.copyOf(rules);
 	}
 
-	private static Map<Identifier, ThresholdCropRule> vanillaEndCropRules() {
-		Map<Identifier, ThresholdCropRule> rules = new LinkedHashMap<>();
+	private static Map<ResourceLocation, ThresholdCropRule> vanillaEndCropRules() {
+		Map<ResourceLocation, ThresholdCropRule> rules = new LinkedHashMap<>();
 		putOverworldCropRules(rules, false);
 		putNetherCropRules(rules, false);
 		putEndCropRules(rules, true);
 		return Map.copyOf(rules);
 	}
 
-	private static void putOverworldCropRules(Map<Identifier, ThresholdCropRule> rules, boolean growableInDimension) {
+	private static void putOverworldCropRules(Map<ResourceLocation, ThresholdCropRule> rules, boolean growableInDimension) {
 		ThresholdCropRule wheat = dimensionRule(wheatRule(), growableInDimension);
 		ThresholdCropRule carrots = dimensionRule(carrotRule(), growableInDimension);
 		ThresholdCropRule potatoes = dimensionRule(potatoRule(), growableInDimension);
@@ -91,12 +91,10 @@ public final class DefaultCropBiomeConfig {
 		ThresholdCropRule cherryTree = dimensionRule(cherryTreeRule(), growableInDimension);
 		ThresholdCropRule spruceTree = dimensionRule(spruceTreeRule(), growableInDimension);
 		ThresholdCropRule acaciaTree = dimensionRule(acaciaTreeRule(), growableInDimension);
-		ThresholdCropRule paleGarden = dimensionRule(paleGardenRule(), growableInDimension);
 		ThresholdCropRule forestWet = dimensionRule(forestWetRule(), growableInDimension);
 		ThresholdCropRule warmWet = dimensionRule(warmWetRule(), growableInDimension);
 		ThresholdCropRule tropicalWet = dimensionRule(tropicalWetRule(), growableInDimension);
 		ThresholdCropRule hotDry = dimensionRule(desertDryRule(), growableInDimension);
-		ThresholdCropRule alwaysGrowable = alwaysGrowableRule();
 		ThresholdCropRule sugarCane = dimensionRule(sugarCaneRule(), growableInDimension);
 		ThresholdCropRule mushroom = dimensionRule(overworldMushroomRule(), growableInDimension);
 		ThresholdCropRule aquatic = dimensionRule(aquaticWetRule(), growableInDimension);
@@ -111,7 +109,6 @@ public final class DefaultCropBiomeConfig {
 		put(rules, "minecraft:pumpkin_stem", pumpkin);
 		put(rules, "minecraft:attached_pumpkin_stem", pumpkin);
 		put(rules, "minecraft:torchflower_crop", warmWet);
-		put(rules, "minecraft:wildflowers", birchTree);
 
 		put(rules, "minecraft:melon_stem", melon);
 		put(rules, "minecraft:attached_melon_stem", melon);
@@ -124,17 +121,12 @@ public final class DefaultCropBiomeConfig {
 		put(rules, "minecraft:jungle_sapling", tropicalWet);
 
 		put(rules, "minecraft:cactus", hotDry);
-		put(rules, "minecraft:cactus_flower", hotDry);
 		put(rules, "minecraft:acacia_sapling", acaciaTree);
-		put(rules, "minecraft:short_dry_grass", hotDry);
-		put(rules, "minecraft:tall_dry_grass", hotDry);
-		put(rules, "minecraft:bush", alwaysGrowable);
 
 		put(rules, "minecraft:sugar_cane", sugarCane);
 
 		put(rules, "minecraft:sweet_berry_bush", spruceTree);
 		put(rules, "minecraft:spruce_sapling", spruceTree);
-		put(rules, "minecraft:firefly_bush", wetBrush);
 
 		put(rules, "minecraft:oak_sapling", oakTree);
 		put(rules, "minecraft:birch_sapling", birchTree);
@@ -143,10 +135,6 @@ public final class DefaultCropBiomeConfig {
 		put(rules, "minecraft:flowering_azalea", lush);
 
 		put(rules, "minecraft:dark_oak_sapling", forestWet);
-		put(rules, "minecraft:pale_oak_sapling", paleGarden);
-		put(rules, "minecraft:pale_moss_block", paleGarden);
-		put(rules, "minecraft:pale_moss_carpet", paleGarden);
-		put(rules, "minecraft:pale_hanging_moss", paleGarden);
 		put(rules, "minecraft:hanging_roots", forestWet);
 
 		put(rules, "minecraft:brown_mushroom", mushroom);
@@ -172,7 +160,7 @@ public final class DefaultCropBiomeConfig {
 		put(rules, "minecraft:large_fern", spruceTree);
 	}
 
-	private static void putNetherCropRules(Map<Identifier, ThresholdCropRule> rules, boolean growableInDimension) {
+	private static void putNetherCropRules(Map<ResourceLocation, ThresholdCropRule> rules, boolean growableInDimension) {
 		ThresholdCropRule nether = dimensionRule(netherRule(), growableInDimension);
 		put(rules, "minecraft:nether_wart", nether);
 		put(rules, "minecraft:crimson_fungus", nether);
@@ -185,13 +173,13 @@ public final class DefaultCropBiomeConfig {
 		put(rules, "minecraft:twisting_vines_plant", nether);
 	}
 
-	private static void putEndCropRules(Map<Identifier, ThresholdCropRule> rules, boolean growableInDimension) {
+	private static void putEndCropRules(Map<ResourceLocation, ThresholdCropRule> rules, boolean growableInDimension) {
 		ThresholdCropRule end = dimensionRule(endRule(), growableInDimension);
 		put(rules, "minecraft:chorus_flower", end);
 		put(rules, "minecraft:chorus_plant", end);
 	}
 
-	private static void put(Map<Identifier, ThresholdCropRule> rules, String cropId, ThresholdCropRule rule) {
+	private static void put(Map<ResourceLocation, ThresholdCropRule> rules, String cropId, ThresholdCropRule rule) {
 		rules.put(id(cropId), rule);
 	}
 
@@ -313,15 +301,6 @@ public final class DefaultCropBiomeConfig {
 		);
 	}
 
-	private static ThresholdCropRule paleGardenRule() {
-		return new ThresholdCropRule(
-				CropBehavior.BONEMEAL_REQUIRED,
-				List.of(
-						growable(COOL, TEMPERATE, PrecipitationRequirement.REQUIRED)
-				)
-		);
-	}
-
 	private static ThresholdCropRule forestWetRule() {
 		return new ThresholdCropRule(
 				CropBehavior.BONEMEAL_REQUIRED,
@@ -435,10 +414,6 @@ public final class DefaultCropBiomeConfig {
 
 	private static ThresholdCropRule defaultRule() {
 		return new ThresholdCropRule(CropBehavior.BONEMEAL_REQUIRED, List.of());
-	}
-
-	private static ThresholdCropRule alwaysGrowableRule() {
-		return new ThresholdCropRule(CropBehavior.GROWABLE, List.of());
 	}
 
 	private static ClimateRule growable(float minTemperatureInclusive, float maxTemperatureExclusive, PrecipitationRequirement precipitation) {

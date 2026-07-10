@@ -22,7 +22,6 @@ public final class GrowableBlockClassifier {
 			Blocks.TORCHFLOWER_CROP,
 			Blocks.PITCHER_CROP,
 			Blocks.CACTUS,
-			Blocks.CACTUS_FLOWER,
 			Blocks.SUGAR_CANE,
 			Blocks.COCOA,
 			Blocks.NETHER_WART,
@@ -35,7 +34,6 @@ public final class GrowableBlockClassifier {
 			Blocks.ACACIA_SAPLING,
 			Blocks.CHERRY_SAPLING,
 			Blocks.DARK_OAK_SAPLING,
-			Blocks.PALE_OAK_SAPLING,
 			Blocks.MANGROVE_PROPAGULE,
 			Blocks.AZALEA,
 			Blocks.FLOWERING_AZALEA,
@@ -65,19 +63,11 @@ public final class GrowableBlockClassifier {
 			Blocks.SMALL_DRIPLEAF,
 			Blocks.MOSS_BLOCK,
 			Blocks.MOSS_CARPET,
-			Blocks.PALE_MOSS_BLOCK,
-			Blocks.PALE_MOSS_CARPET,
-			Blocks.PALE_HANGING_MOSS,
 			Blocks.HANGING_ROOTS,
 			Blocks.SHORT_GRASS,
 			Blocks.TALL_GRASS,
 			Blocks.FERN,
-			Blocks.LARGE_FERN,
-			Blocks.BUSH,
-			Blocks.SHORT_DRY_GRASS,
-			Blocks.TALL_DRY_GRASS,
-			Blocks.WILDFLOWERS,
-			Blocks.FIREFLY_BUSH
+			Blocks.LARGE_FERN
 	);
 
 	public static Set<Block> defaultGrowableBlocks() {

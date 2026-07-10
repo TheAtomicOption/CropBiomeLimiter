@@ -6,7 +6,7 @@ import java.util.Optional;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rocks.theatomicoption.cropbiomelimiter.commands.RegistrySnapshotCommand;
@@ -118,19 +118,19 @@ public class CropBiomeLimiter implements ModInitializer {
 		return service == null ? CropDecisionService.allowAll() : service;
 	}
 
-	public static Identifier id(String path) {
-		return tryId(path).orElseGet(() -> Identifier.fromNamespaceAndPath(MOD_ID, "invalid"));
+	public static ResourceLocation id(String path) {
+		return tryId(path).orElseGet(() -> ResourceLocation.fromNamespaceAndPath(MOD_ID, "invalid"));
 	}
 
-	public static Optional<Identifier> tryId(String path) {
+	public static Optional<ResourceLocation> tryId(String path) {
 		if (path == null || path.isBlank()) {
 			return Optional.empty();
 		}
 
 		try {
-			return Optional.of(Identifier.fromNamespaceAndPath(MOD_ID, path));
+			return Optional.of(ResourceLocation.fromNamespaceAndPath(MOD_ID, path));
 		} catch (RuntimeException exception) {
-			LOGGER.debug("Ignoring invalid Crop Biome Limiter identifier path: {}", path, exception);
+			LOGGER.debug("Ignoring invalid Crop Biome Limiter ResourceLocation path: {}", path, exception);
 			return Optional.empty();
 		}
 	}

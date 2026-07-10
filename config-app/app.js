@@ -60,7 +60,6 @@ const DEFAULT_CROPS = [
 	"minecraft:torchflower_crop",
 	"minecraft:pitcher_crop",
 	"minecraft:cactus",
-	"minecraft:cactus_flower",
 	"minecraft:sugar_cane",
 	"minecraft:cocoa",
 	"minecraft:nether_wart",
@@ -73,7 +72,6 @@ const DEFAULT_CROPS = [
 	"minecraft:acacia_sapling",
 	"minecraft:cherry_sapling",
 	"minecraft:dark_oak_sapling",
-	"minecraft:pale_oak_sapling",
 	"minecraft:mangrove_propagule",
 	"minecraft:azalea",
 	"minecraft:flowering_azalea",
@@ -103,19 +101,11 @@ const DEFAULT_CROPS = [
 	"minecraft:small_dripleaf",
 	"minecraft:moss_block",
 	"minecraft:moss_carpet",
-	"minecraft:pale_moss_block",
-	"minecraft:pale_moss_carpet",
-	"minecraft:pale_hanging_moss",
 	"minecraft:hanging_roots",
 	"minecraft:short_grass",
 	"minecraft:tall_grass",
 	"minecraft:fern",
-	"minecraft:large_fern",
-	"minecraft:bush",
-	"minecraft:short_dry_grass",
-	"minecraft:tall_dry_grass",
-	"minecraft:wildflowers",
-	"minecraft:firefly_bush"
+	"minecraft:large_fern"
 ];
 
 export const DEFAULT_BIOMES = [
@@ -131,7 +121,6 @@ export const DEFAULT_BIOMES = [
 	{ id: "minecraft:flower_forest", temperature: 0.7, has_precipitation: true },
 	{ id: "minecraft:birch_forest", temperature: 0.6, has_precipitation: true },
 	{ id: "minecraft:dark_forest", temperature: 0.7, has_precipitation: true },
-	{ id: "minecraft:pale_garden", temperature: 0.7, has_precipitation: true },
 	{ id: "minecraft:old_growth_birch_forest", temperature: 0.6, has_precipitation: true },
 	{ id: "minecraft:old_growth_pine_taiga", temperature: 0.3, has_precipitation: true },
 	{ id: "minecraft:old_growth_spruce_taiga", temperature: 0.25, has_precipitation: true },
@@ -322,12 +311,10 @@ function putOverworldThresholdRules(crops, growableInDimension) {
 	const cherryTree = dimensionRule(cherryTreeRule(), growableInDimension);
 	const spruceTree = dimensionRule(spruceTreeRule(), growableInDimension);
 	const acaciaTree = dimensionRule(acaciaTreeRule(), growableInDimension);
-	const paleGarden = dimensionRule(paleGardenRule(), growableInDimension);
 	const forestWet = dimensionRule(forestWetRule(), growableInDimension);
 	const warmWet = dimensionRule(warmWetRule(), growableInDimension);
 	const tropicalWet = dimensionRule(tropicalWetRule(), growableInDimension);
 	const hotDry = dimensionRule(desertDryRule(), growableInDimension);
-	const alwaysGrowable = alwaysGrowableRule();
 	const sugarCane = dimensionRule(sugarCaneRule(), growableInDimension);
 	const mushroom = dimensionRule(overworldMushroomRule(), growableInDimension);
 	const aquatic = dimensionRule(aquaticWetRule(), growableInDimension);
@@ -341,23 +328,20 @@ function putOverworldThresholdRules(crops, growableInDimension) {
 	putRules(crops, beetroots, "minecraft:beetroots");
 	putRules(crops, pumpkin, "minecraft:pumpkin_stem", "minecraft:attached_pumpkin_stem");
 	putRules(crops, warmWet, "minecraft:torchflower_crop", "minecraft:pitcher_crop", "minecraft:mangrove_propagule");
-	putRules(crops, birchTree, "minecraft:wildflowers");
 	putRules(crops, melon, "minecraft:melon_stem", "minecraft:attached_melon_stem");
 	putRules(crops, tropicalWet, "minecraft:bamboo_sapling", "minecraft:bamboo");
 	putRules(crops, tropicalWet, "minecraft:cocoa", "minecraft:jungle_sapling");
-	putRules(crops, hotDry, "minecraft:cactus", "minecraft:cactus_flower", "minecraft:short_dry_grass", "minecraft:tall_dry_grass");
+	putRules(crops, hotDry, "minecraft:cactus");
 	putRules(crops, acaciaTree, "minecraft:acacia_sapling");
-	putRules(crops, alwaysGrowable, "minecraft:bush");
 	putRules(crops, sugarCane, "minecraft:sugar_cane");
 	putRules(crops, spruceTree, "minecraft:sweet_berry_bush", "minecraft:spruce_sapling", "minecraft:large_fern");
 	putRules(crops, fern, "minecraft:fern");
-	putRules(crops, wetBrush, "minecraft:firefly_bush", "minecraft:short_grass", "minecraft:tall_grass");
+	putRules(crops, wetBrush, "minecraft:short_grass", "minecraft:tall_grass");
 	putRules(crops, oakTree, "minecraft:oak_sapling");
 	putRules(crops, birchTree, "minecraft:birch_sapling");
 	putRules(crops, cherryTree, "minecraft:cherry_sapling");
 	putRules(crops, lush, "minecraft:azalea", "minecraft:flowering_azalea");
 	putRules(crops, forestWet, "minecraft:dark_oak_sapling", "minecraft:hanging_roots");
-	putRules(crops, paleGarden, "minecraft:pale_oak_sapling", "minecraft:pale_moss_block", "minecraft:pale_moss_carpet", "minecraft:pale_hanging_moss");
 	putRules(crops, mushroom, "minecraft:brown_mushroom", "minecraft:red_mushroom");
 	putRules(crops, aquatic, "minecraft:seagrass", "minecraft:tall_seagrass", "minecraft:kelp", "minecraft:kelp_plant");
 	putRules(crops, lush, "minecraft:cave_vines", "minecraft:cave_vines_plant", "minecraft:vine", "minecraft:glow_lichen", "minecraft:big_dripleaf", "minecraft:big_dripleaf_stem", "minecraft:small_dripleaf", "minecraft:moss_block", "minecraft:moss_carpet");
@@ -394,10 +378,6 @@ function dimensionRule(rule, growableInDimension) {
 
 function defaultThresholdRule() {
 	return thresholdRule("bonemeal-required", []);
-}
-
-function alwaysGrowableRule() {
-	return thresholdRule("growable", []);
 }
 
 function wheatRule() {
@@ -446,10 +426,6 @@ function spruceTreeRule() {
 
 function acaciaTreeRule() {
 	return thresholdRule("bonemeal-required", [growable(TEMPERATE, VERY_HOT, "forbidden")]);
-}
-
-function paleGardenRule() {
-	return thresholdRule("bonemeal-required", [growable(COOL, TEMPERATE, "required")]);
 }
 
 function forestWetRule() {
