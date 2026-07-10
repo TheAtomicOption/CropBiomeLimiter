@@ -2,7 +2,7 @@ package rocks.theatomicoption.cropbiomelimiter.mixin;
 
 import java.util.List;
 
-import net.minecraft.data.worldgen.BootstrapContext;
+import net.minecraft.data.worldgen.BootstapContext;
 import net.minecraft.data.worldgen.ProcessorLists;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor;
@@ -18,11 +18,11 @@ public abstract class ProcessorListsMixin {
 			method = "bootstrap",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/data/worldgen/ProcessorLists;register(Lnet/minecraft/data/worldgen/BootstrapContext;Lnet/minecraft/resources/ResourceKey;Ljava/util/List;)V"
+					target = "Lnet/minecraft/data/worldgen/ProcessorLists;register(Lnet/minecraft/data/worldgen/BootstapContext;Lnet/minecraft/resources/ResourceKey;Ljava/util/List;)V"
 			)
 	)
 	private static void cropbiomelimiter$registerProcessorList(
-			BootstrapContext<StructureProcessorList> context,
+			BootstapContext<StructureProcessorList> context,
 			ResourceKey<StructureProcessorList> key,
 			List<StructureProcessor> processors
 	) {

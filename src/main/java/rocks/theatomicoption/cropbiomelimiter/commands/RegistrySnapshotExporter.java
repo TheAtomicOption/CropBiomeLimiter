@@ -7,14 +7,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Comparator;
-import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.core.Registry;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -79,7 +79,7 @@ public final class RegistrySnapshotExporter {
 	private static JsonArray dimensions(MinecraftServer server) {
 		JsonArray dimensions = new JsonArray();
 		server.levelKeys().stream()
-				.map(ResourceKey::identifier)
+				.map(ResourceKey::location)
 				.map(Object::toString)
 				.sorted()
 				.forEach(dimensions::add);
@@ -92,16 +92,16 @@ public final class RegistrySnapshotExporter {
 		return biomes;
 	}
 
-	private static void addBiomes(Registry<Biome> registry, JsonArray biomes) {
-		registry.entrySet().stream()
-				.sorted(Comparator.comparing(entry -> entry.getKey().identifier().toString()))
+	private static void addBiomes(HolderLookup.RegistryLookup<Biome> registry, JsonArray biomes) {
+		registry.listElements()
+				.sorted(Comparator.comparing(entry -> entry.key().location().toString()))
 				.forEach(entry -> biomes.add(biome(entry)));
 	}
 
-	private static JsonObject biome(Map.Entry<ResourceKey<Biome>, Biome> entry) {
-		Biome biome = entry.getValue();
+	private static JsonObject biome(Holder.Reference<Biome> entry) {
+		Biome biome = entry.value();
 		JsonObject value = new JsonObject();
-		value.addProperty("id", entry.getKey().identifier().toString());
+		value.addProperty("id", entry.key().location().toString());
 		value.addProperty("temperature", biome.getBaseTemperature());
 		value.addProperty("has_precipitation", biome.hasPrecipitation());
 		return value;
@@ -112,8 +112,8 @@ public final class RegistrySnapshotExporter {
 		GrowableBlockClassifier classifier = new GrowableBlockClassifier();
 		BuiltInRegistries.BLOCK.entrySet().stream()
 				.filter(entry -> isTrackedGrowable(classifier, entry.getValue()))
-				.sorted(Comparator.comparing(entry -> entry.getKey().identifier().toString()))
-				.forEach(entry -> crops.add(entry.getKey().identifier().toString()));
+				.sorted(Comparator.comparing(entry -> entry.getKey().location().toString()))
+				.forEach(entry -> crops.add(entry.getKey().location().toString()));
 		return crops;
 	}
 

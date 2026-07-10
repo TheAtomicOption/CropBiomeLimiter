@@ -2,12 +2,10 @@ package rocks.theatomicoption.cropbiomelimiter.events;
 
 import java.util.Optional;
 
-import net.fabricmc.fabric.api.event.player.BlockEvents;
-import net.fabricmc.fabric.api.event.player.ItemEvents;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
@@ -20,7 +18,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.BlockHitResult;
 import rocks.theatomicoption.cropbiomelimiter.CropBiomeLimiter;
 
 public final class PlayerActionHandler {
@@ -34,8 +31,8 @@ public final class PlayerActionHandler {
 	}
 
 	public static void register() {
-		ItemEvents.USE_ON.register(PlayerActionHandler::onUseOnBlock);
-		BlockEvents.USE_ITEM_ON.register(PlayerActionHandler::onUseItemOnBlock);
+		UseBlockCallback.EVENT.register((player, level, hand, hitResult) ->
+				onUseOnBlock(new UseOnContext(player, hand, hitResult)));
 	}
 
 	private static InteractionResult onUseOnBlock(UseOnContext context) {
@@ -68,24 +65,6 @@ public final class PlayerActionHandler {
 		}
 
 		return null;
-	}
-
-	private static InteractionResult onUseItemOnBlock(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		try {
-			return tryOnUseItemOnBlock(stack, state, level, pos, player);
-		} catch (RuntimeException exception) {
-			CropBiomeLimiter.LOGGER.warn("Allowing block item use because Crop Biome Limiter failed inside the block interaction callback.", exception);
-			return null;
-		}
-	}
-
-	private static InteractionResult tryOnUseItemOnBlock(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player) {
-		if (level.isClientSide()) {
-			return null;
-		}
-
-		Item item = stack.getItem();
-		return tryHandleBonemeal(level, pos, state, item, player).orElse(null);
 	}
 
 	private static Optional<InteractionResult> tryHandleBonemeal(UseOnContext context, Level level, Item item, Player player) {

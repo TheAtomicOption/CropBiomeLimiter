@@ -22,7 +22,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import rocks.theatomicoption.cropbiomelimiter.CropBiomeLimiter;
@@ -112,7 +112,7 @@ public final class CropBiomeLimiterConfigLoader {
 		};
 		Map<ResourceKey<Level>, DimensionRules> dimensions = new LinkedHashMap<>();
 		general.dimensionModes().entrySet().stream()
-				.sorted(Comparator.comparing(entry -> entry.getKey().identifier().toString()))
+				.sorted(Comparator.comparing(entry -> entry.getKey().location().toString()))
 				.forEach(entry -> dimensions.put(entry.getKey(), rulesFor(entry.getKey(), entry.getValue(), explicit, threshold)));
 		return new CropBiomeLimiterConfig(general.options(), fallbackRules, Map.copyOf(dimensions));
 	}
@@ -198,7 +198,7 @@ public final class CropBiomeLimiterConfigLoader {
 	private static GeneralFile generalFile(CropBiomeLimiterConfig config) {
 		Map<ResourceKey<Level>, RuleMode> dimensions = new LinkedHashMap<>();
 		config.dimensionRules().entrySet().stream()
-				.sorted(Comparator.comparing(entry -> entry.getKey().identifier().toString()))
+				.sorted(Comparator.comparing(entry -> entry.getKey().location().toString()))
 				.forEach(entry -> dimensions.put(entry.getKey(), entry.getValue().mode()));
 		return new GeneralFile(config.generalOptions(), config.fallbackRules().mode(), Map.copyOf(dimensions));
 	}
@@ -207,7 +207,7 @@ public final class CropBiomeLimiterConfigLoader {
 		ExplicitModeRules fallback = explicitRulesFor(config.fallbackRules());
 		Map<ResourceKey<Level>, ExplicitModeRules> dimensions = new LinkedHashMap<>();
 		config.dimensionRules().entrySet().stream()
-				.sorted(Comparator.comparing(entry -> entry.getKey().identifier().toString()))
+				.sorted(Comparator.comparing(entry -> entry.getKey().location().toString()))
 				.forEach(entry -> dimensions.put(entry.getKey(), explicitRulesFor(entry.getKey(), entry.getValue())));
 		return new ExplicitModeFile(fallback, Map.copyOf(dimensions));
 	}
@@ -228,15 +228,15 @@ public final class CropBiomeLimiterConfigLoader {
 
 	private static ExplicitModeRules explicitRulesFromThreshold(ThresholdModeRules rules, List<BiomeClimate> biomes) {
 		CropBehavior defaultBehavior = rules.defaultRule().defaultBehavior();
-		Map<Identifier, Map<Identifier, CropBehavior>> cropBiomeRules = new LinkedHashMap<>();
+		Map<ResourceLocation, Map<ResourceLocation, CropBehavior>> cropBiomeRules = new LinkedHashMap<>();
 		rules.cropRules().entrySet().stream()
 				.sorted(Comparator.comparing(entry -> entry.getKey().toString()))
 				.forEach(entry -> addExplicitCropRules(entry.getKey(), entry.getValue(), defaultBehavior, biomes, cropBiomeRules));
 		return new ExplicitModeRules(defaultBehavior, immutableCropBiomeRules(cropBiomeRules));
 	}
 
-	private static void addExplicitCropRules(Identifier cropId, ThresholdCropRule thresholdRule, CropBehavior explicitDefault, List<BiomeClimate> biomes, Map<Identifier, Map<Identifier, CropBehavior>> cropBiomeRules) {
-		Map<Identifier, CropBehavior> biomeRules = new LinkedHashMap<>();
+	private static void addExplicitCropRules(ResourceLocation cropId, ThresholdCropRule thresholdRule, CropBehavior explicitDefault, List<BiomeClimate> biomes, Map<ResourceLocation, Map<ResourceLocation, CropBehavior>> cropBiomeRules) {
+		Map<ResourceLocation, CropBehavior> biomeRules = new LinkedHashMap<>();
 		for (BiomeClimate biome : biomes) {
 			CropBehavior behavior = resolveThresholdRule(thresholdRule, biome);
 			if (behavior != explicitDefault) {
@@ -263,7 +263,7 @@ public final class CropBiomeLimiterConfigLoader {
 				: new ThresholdModeRules(new ThresholdCropRule(defaultBehavior(config.fallbackRules()), List.of()), Map.of());
 		Map<ResourceKey<Level>, ThresholdModeRules> dimensions = new LinkedHashMap<>();
 		config.dimensionRules().entrySet().stream()
-				.sorted(Comparator.comparing(entry -> entry.getKey().identifier().toString()))
+				.sorted(Comparator.comparing(entry -> entry.getKey().location().toString()))
 				.filter(entry -> entry.getValue() instanceof ThresholdModeRules)
 				.forEach(entry -> dimensions.put(entry.getKey(), (ThresholdModeRules) entry.getValue()));
 		return new ThresholdModeFile(fallback, Map.copyOf(dimensions));
@@ -303,7 +303,7 @@ public final class CropBiomeLimiterConfigLoader {
 		boolean affectsBlockPlacement = booleanMember(object, "affects_block_placement", fallback.affectsBlockPlacement(), "general.affects_block_placement", diagnostics);
 		boolean affectsVillageFarmGeneration = booleanMember(object, "affects_village_farm_generation", fallback.affectsVillageFarmGeneration(), "general.affects_village_farm_generation", diagnostics);
 		boolean chatInfo = booleanMember(object, "chat_info", fallback.chatInfo(), "general.chat_info", diagnostics);
-		Set<Identifier> excludedBlocks = identifiers(object.get("excluded_blocks"), fallback.excludedBlocks(), "general.excluded_blocks", diagnostics);
+		Set<ResourceLocation> excludedBlocks = identifiers(object.get("excluded_blocks"), fallback.excludedBlocks(), "general.excluded_blocks", diagnostics);
 		return new GeneralOptions(affectsBonemeal, affectsBlockPlacement, affectsVillageFarmGeneration, chatInfo, excludedBlocks);
 	}
 
@@ -366,15 +366,15 @@ public final class CropBiomeLimiterConfigLoader {
 
 	private static ExplicitModeRules readExplicitRules(JsonObject object, ExplicitModeRules fallback, String path, List<String> diagnostics) {
 		CropBehavior defaultBehavior = behaviorMember(object, "default_behavior", fallback.defaultBehavior(), path + ".default_behavior", diagnostics);
-		Map<Identifier, Map<Identifier, CropBehavior>> cropBiomeRules = mutableCropBiomeRules(fallback.cropBiomeRules());
+		Map<ResourceLocation, Map<ResourceLocation, CropBehavior>> cropBiomeRules = mutableCropBiomeRules(fallback.cropBiomeRules());
 		objectMember(object, "biomes").ifPresent(biomes -> biomes.entrySet().stream()
 				.sorted(Map.Entry.comparingByKey())
 				.forEach(entry -> readExplicitBiome(entry, cropBiomeRules, defaultBehavior, path, diagnostics)));
 		return new ExplicitModeRules(defaultBehavior, immutableCropBiomeRules(cropBiomeRules));
 	}
 
-	private static void readExplicitBiome(Map.Entry<String, JsonElement> entry, Map<Identifier, Map<Identifier, CropBehavior>> cropBiomeRules, CropBehavior defaultBehavior, String path, List<String> diagnostics) {
-		Optional<Identifier> biomeId = identifier(entry.getKey(), path + ".biomes", diagnostics);
+	private static void readExplicitBiome(Map.Entry<String, JsonElement> entry, Map<ResourceLocation, Map<ResourceLocation, CropBehavior>> cropBiomeRules, CropBehavior defaultBehavior, String path, List<String> diagnostics) {
+		Optional<ResourceLocation> biomeId = ResourceLocation(entry.getKey(), path + ".biomes", diagnostics);
 		if (biomeId.isEmpty()) {
 			return;
 		}
@@ -388,8 +388,8 @@ public final class CropBiomeLimiterConfigLoader {
 				.forEach(cropEntry -> readExplicitBiomeCrop(cropEntry, biomeId.get(), cropBiomeRules, defaultBehavior, path + ".biomes." + entry.getKey(), diagnostics));
 	}
 
-	private static void readExplicitBiomeCrop(Map.Entry<String, JsonElement> entry, Identifier biomeId, Map<Identifier, Map<Identifier, CropBehavior>> cropBiomeRules, CropBehavior defaultBehavior, String path, List<String> diagnostics) {
-		Optional<Identifier> cropId = identifier(entry.getKey(), path, diagnostics);
+	private static void readExplicitBiomeCrop(Map.Entry<String, JsonElement> entry, ResourceLocation biomeId, Map<ResourceLocation, Map<ResourceLocation, CropBehavior>> cropBiomeRules, CropBehavior defaultBehavior, String path, List<String> diagnostics) {
+		Optional<ResourceLocation> cropId = ResourceLocation(entry.getKey(), path, diagnostics);
 		if (cropId.isEmpty()) {
 			return;
 		}
@@ -401,15 +401,15 @@ public final class CropBiomeLimiterConfigLoader {
 		ThresholdCropRule defaultRule = member(object, "default_rule")
 				.map(element -> readThresholdCropRule(element, fallback.defaultRule(), path + ".default_rule", diagnostics))
 				.orElse(fallback.defaultRule());
-		Map<Identifier, ThresholdCropRule> cropRules = new LinkedHashMap<>(fallback.cropRules());
+		Map<ResourceLocation, ThresholdCropRule> cropRules = new LinkedHashMap<>(fallback.cropRules());
 		objectMember(object, "crops").ifPresent(crops -> crops.entrySet().stream()
 				.sorted(Map.Entry.comparingByKey())
 				.forEach(entry -> readThresholdCropRuleEntry(entry, cropRules, defaultRule, path + ".crops", diagnostics)));
 		return new ThresholdModeRules(defaultRule, Map.copyOf(cropRules));
 	}
 
-	private static void readThresholdCropRuleEntry(Map.Entry<String, JsonElement> entry, Map<Identifier, ThresholdCropRule> cropRules, ThresholdCropRule defaultRule, String path, List<String> diagnostics) {
-		Optional<Identifier> cropId = identifier(entry.getKey(), path, diagnostics);
+	private static void readThresholdCropRuleEntry(Map.Entry<String, JsonElement> entry, Map<ResourceLocation, ThresholdCropRule> cropRules, ThresholdCropRule defaultRule, String path, List<String> diagnostics) {
+		Optional<ResourceLocation> cropId = ResourceLocation(entry.getKey(), path, diagnostics);
 		if (cropId.isEmpty()) {
 			return;
 		}
@@ -474,8 +474,8 @@ public final class CropBiomeLimiterConfigLoader {
 		object.addProperty("fallback_mode", general.fallbackMode().serializedName());
 		JsonObject dimensions = new JsonObject();
 		general.dimensionModes().entrySet().stream()
-				.sorted(Comparator.comparing(entry -> entry.getKey().identifier().toString()))
-				.forEach(entry -> dimensions.addProperty(entry.getKey().identifier().toString(), entry.getValue().serializedName()));
+				.sorted(Comparator.comparing(entry -> entry.getKey().location().toString()))
+				.forEach(entry -> dimensions.addProperty(entry.getKey().location().toString(), entry.getValue().serializedName()));
 		object.add("dimensions", dimensions);
 		return object;
 	}
@@ -486,8 +486,8 @@ public final class CropBiomeLimiterConfigLoader {
 		object.add("fallback", explicitRulesJson(explicit.fallback()));
 		JsonObject dimensions = new JsonObject();
 		explicit.dimensions().entrySet().stream()
-				.sorted(Comparator.comparing(entry -> entry.getKey().identifier().toString()))
-				.forEach(entry -> dimensions.add(entry.getKey().identifier().toString(), explicitRulesJson(entry.getValue())));
+				.sorted(Comparator.comparing(entry -> entry.getKey().location().toString()))
+				.forEach(entry -> dimensions.add(entry.getKey().location().toString(), explicitRulesJson(entry.getValue())));
 		object.add("dimensions", dimensions);
 		return object;
 	}
@@ -498,8 +498,8 @@ public final class CropBiomeLimiterConfigLoader {
 		object.add("fallback", thresholdRulesJson(threshold.fallback()));
 		JsonObject dimensions = new JsonObject();
 		threshold.dimensions().entrySet().stream()
-				.sorted(Comparator.comparing(entry -> entry.getKey().identifier().toString()))
-				.forEach(entry -> dimensions.add(entry.getKey().identifier().toString(), thresholdRulesJson(entry.getValue())));
+				.sorted(Comparator.comparing(entry -> entry.getKey().location().toString()))
+				.forEach(entry -> dimensions.add(entry.getKey().location().toString(), thresholdRulesJson(entry.getValue())));
 		object.add("dimensions", dimensions);
 		return object;
 	}
@@ -515,7 +515,7 @@ public final class CropBiomeLimiterConfigLoader {
 		return object;
 	}
 
-	private static JsonObject cropBehaviorRules(Map<Identifier, CropBehavior> rules) {
+	private static JsonObject cropBehaviorRules(Map<ResourceLocation, CropBehavior> rules) {
 		JsonObject object = new JsonObject();
 		rules.entrySet().stream()
 				.sorted(Comparator.comparing(entry -> entry.getKey().toString()))
@@ -523,8 +523,8 @@ public final class CropBiomeLimiterConfigLoader {
 		return object;
 	}
 
-	private static Map<Identifier, Map<Identifier, CropBehavior>> biomeCropRules(Map<Identifier, Map<Identifier, CropBehavior>> cropBiomeRules) {
-		Map<Identifier, Map<Identifier, CropBehavior>> biomes = new LinkedHashMap<>();
+	private static Map<ResourceLocation, Map<ResourceLocation, CropBehavior>> biomeCropRules(Map<ResourceLocation, Map<ResourceLocation, CropBehavior>> cropBiomeRules) {
+		Map<ResourceLocation, Map<ResourceLocation, CropBehavior>> biomes = new LinkedHashMap<>();
 		cropBiomeRules.forEach((cropId, biomeRules) -> biomeRules.forEach((biomeId, behavior) -> biomes.computeIfAbsent(biomeId, ignored -> new LinkedHashMap<>()).put(cropId, behavior)));
 		return biomes;
 	}
@@ -570,28 +570,28 @@ public final class CropBiomeLimiterConfigLoader {
 		return CropBehavior.GROWABLE;
 	}
 
-	private static Map<Identifier, Map<Identifier, CropBehavior>> mutableCropBiomeRules(Map<Identifier, Map<Identifier, CropBehavior>> rules) {
-		Map<Identifier, Map<Identifier, CropBehavior>> mutableRules = new LinkedHashMap<>();
+	private static Map<ResourceLocation, Map<ResourceLocation, CropBehavior>> mutableCropBiomeRules(Map<ResourceLocation, Map<ResourceLocation, CropBehavior>> rules) {
+		Map<ResourceLocation, Map<ResourceLocation, CropBehavior>> mutableRules = new LinkedHashMap<>();
 		rules.forEach((cropId, biomeRules) -> mutableRules.put(cropId, new LinkedHashMap<>(biomeRules)));
 		return mutableRules;
 	}
 
-	private static Map<Identifier, Map<Identifier, CropBehavior>> immutableCropBiomeRules(Map<Identifier, Map<Identifier, CropBehavior>> rules) {
-		Map<Identifier, Map<Identifier, CropBehavior>> immutableRules = new LinkedHashMap<>();
+	private static Map<ResourceLocation, Map<ResourceLocation, CropBehavior>> immutableCropBiomeRules(Map<ResourceLocation, Map<ResourceLocation, CropBehavior>> rules) {
+		Map<ResourceLocation, Map<ResourceLocation, CropBehavior>> immutableRules = new LinkedHashMap<>();
 		rules.forEach((cropId, biomeRules) -> immutableRules.put(cropId, Map.copyOf(biomeRules)));
 		return Map.copyOf(immutableRules);
 	}
 
 	private static Optional<ResourceKey<Level>> dimensionKey(String value, String path, List<String> diagnostics) {
-		return identifier(value, path, diagnostics).map(identifier -> ResourceKey.create(Registries.DIMENSION, identifier));
+		return ResourceLocation(value, path, diagnostics).map(ResourceLocation -> ResourceKey.create(Registries.DIMENSION, ResourceLocation));
 	}
 
-	private static Optional<Identifier> identifier(String value, String path, List<String> diagnostics) {
-		Optional<Identifier> identifier = DefaultCropBiomeConfig.tryId(value);
-		if (identifier.isEmpty()) {
-			diagnostics.add("Ignoring invalid identifier at " + path + ": " + value);
+	private static Optional<ResourceLocation> ResourceLocation(String value, String path, List<String> diagnostics) {
+		Optional<ResourceLocation> ResourceLocation = DefaultCropBiomeConfig.tryId(value);
+		if (ResourceLocation.isEmpty()) {
+			diagnostics.add("Ignoring invalid ResourceLocation at " + path + ": " + value);
 		}
-		return identifier;
+		return ResourceLocation;
 	}
 
 	private static Optional<JsonElement> member(JsonObject object, String name) {
@@ -610,7 +610,7 @@ public final class CropBiomeLimiterConfigLoader {
 		return Optional.of(element.getAsJsonObject());
 	}
 
-	private static Set<Identifier> identifiers(JsonElement element, Set<Identifier> fallback, String path, List<String> diagnostics) {
+	private static Set<ResourceLocation> identifiers(JsonElement element, Set<ResourceLocation> fallback, String path, List<String> diagnostics) {
 		if (element == null || element.isJsonNull()) {
 			return fallback;
 		}
@@ -618,18 +618,18 @@ public final class CropBiomeLimiterConfigLoader {
 			diagnostics.add(path + " must be an array; using default identifiers.");
 			return fallback;
 		}
-		Set<Identifier> identifiers = new LinkedHashSet<>();
+		Set<ResourceLocation> identifiers = new LinkedHashSet<>();
 		JsonArray array = element.getAsJsonArray();
 		for (int i = 0; i < array.size(); i++) {
 			String value = string(array.get(i), null, path + "[" + i + "]", diagnostics);
 			if (value == null) {
 				continue;
 			}
-			Optional<Identifier> identifier = DefaultCropBiomeConfig.tryId(value);
-			if (identifier.isPresent()) {
-				identifiers.add(identifier.get());
+			Optional<ResourceLocation> ResourceLocation = DefaultCropBiomeConfig.tryId(value);
+			if (ResourceLocation.isPresent()) {
+				identifiers.add(ResourceLocation.get());
 			} else {
-				diagnostics.add("Ignoring invalid identifier at " + path + "[" + i + "]: " + value);
+				diagnostics.add("Ignoring invalid ResourceLocation at " + path + "[" + i + "]: " + value);
 			}
 		}
 		return Set.copyOf(identifiers);
@@ -742,7 +742,6 @@ public final class CropBiomeLimiterConfigLoader {
 				biomeClimate("minecraft:flower_forest", 0.7F, true),
 				biomeClimate("minecraft:birch_forest", 0.6F, true),
 				biomeClimate("minecraft:dark_forest", 0.7F, true),
-				biomeClimate("minecraft:pale_garden", 0.7F, true),
 				biomeClimate("minecraft:old_growth_birch_forest", 0.6F, true),
 				biomeClimate("minecraft:old_growth_pine_taiga", 0.3F, true),
 				biomeClimate("minecraft:old_growth_spruce_taiga", 0.25F, true),
@@ -821,6 +820,6 @@ public final class CropBiomeLimiterConfigLoader {
 	private record ThresholdModeFile(ThresholdModeRules fallback, Map<ResourceKey<Level>, ThresholdModeRules> dimensions) {
 	}
 
-	private record BiomeClimate(Identifier id, float temperature, boolean hasPrecipitation) {
+	private record BiomeClimate(ResourceLocation id, float temperature, boolean hasPrecipitation) {
 	}
 }

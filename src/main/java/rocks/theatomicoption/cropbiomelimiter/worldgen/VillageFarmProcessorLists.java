@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.data.worldgen.BootstrapContext;
+import net.minecraft.data.worldgen.BootstapContext;
 import net.minecraft.data.worldgen.ProcessorLists;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.Block;
@@ -28,7 +28,7 @@ public final class VillageFarmProcessorLists {
 	}
 
 	public static void register(
-			BootstrapContext<StructureProcessorList> context,
+			BootstapContext<StructureProcessorList> context,
 			ResourceKey<StructureProcessorList> key,
 			List<StructureProcessor> vanillaProcessors
 	) {
