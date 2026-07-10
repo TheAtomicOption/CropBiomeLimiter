@@ -35,19 +35,22 @@ public final class PlayerActionHandler {
 				onUseOnBlock(new UseOnContext(player, hand, hitResult)));
 	}
 
-	private static InteractionResult onUseOnBlock(UseOnContext context) {
+	static InteractionResult onUseOnBlock(UseOnContext context) {
+		if (context == null) {
+			return InteractionResult.PASS;
+		}
 		try {
 			return tryOnUseOnBlock(context);
 		} catch (RuntimeException exception) {
 			CropBiomeLimiter.LOGGER.warn("Allowing item use because Crop Biome Limiter failed inside the player action callback.", exception);
-			return null;
+			return InteractionResult.PASS;
 		}
 	}
 
 	private static InteractionResult tryOnUseOnBlock(UseOnContext context) {
 		Level level = context.getLevel();
 		if (level.isClientSide()) {
-			return null;
+			return InteractionResult.PASS;
 		}
 
 		ItemStack stack = context.getItemInHand();
@@ -64,7 +67,7 @@ public final class PlayerActionHandler {
 			return placementResult.get();
 		}
 
-		return null;
+		return InteractionResult.PASS;
 	}
 
 	private static Optional<InteractionResult> tryHandleBonemeal(UseOnContext context, Level level, Item item, Player player) {

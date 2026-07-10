@@ -29,6 +29,7 @@ public final class CoreBehaviorSmokeTest {
 		thresholdModeUsesTemperatureAndPrecipitation();
 		decisionServiceAppliesConfiguredBehaviorToActions();
 		defaultThresholdConfigAllowsAndWarnsWrongClimateCactusPlacement();
+		unplantableSaplingsDenyPlacement();
 		decisionServiceWithersOnlyPlantingAllowedNaturalGrowthDenials();
 		creativeModeBypassesPlayerActionRestrictions();
 		decisionServiceHonorsTogglesExclusionsAndFallbacks();
@@ -137,6 +138,20 @@ public final class CoreBehaviorSmokeTest {
 		assertTrue(service.canPlace(Level.OVERWORLD, coldWet, Blocks.CACTUS.defaultBlockState()), "default Threshold mode should allow wrong-climate cactus placement because the default behavior is bonemeal-required");
 		assertTrue(service.shouldWarnOnAllowedPlacement(Level.OVERWORLD, coldWet, Blocks.CACTUS.defaultBlockState()), "default Threshold mode should warn when wrong-climate cactus placement is allowed but natural growth is denied");
 		assertTrue(service.shouldWitherOnSuccessfulNaturalGrowth(Level.OVERWORLD, coldWet, Blocks.CACTUS.defaultBlockState()), "wrong-climate cactus should wither if a denied natural growth tick succeeds");
+	}
+
+	private static void unplantableSaplingsDenyPlacement() {
+		ResourceLocation acacia = id("minecraft:acacia_sapling");
+		ResourceLocation plains = id("minecraft:plains");
+		ExplicitModeRules rules = new ExplicitModeRules(
+				CropBehavior.GROWABLE,
+				Map.of(acacia, Map.of(plains, CropBehavior.UNPLANTABLE))
+		);
+		CropDecisionService service = decisionService(GeneralOptions.defaults(), rules);
+
+		assertTrue(!service.canPlace(Level.OVERWORLD, biomeHolder(plains), Blocks.ACACIA_SAPLING.defaultBlockState()), "unplantable saplings should deny placement");
+		assertTrue(!service.canUseBonemeal(Level.OVERWORLD, biomeHolder(plains), Blocks.ACACIA_SAPLING.defaultBlockState()), "unplantable saplings should deny bone meal");
+		assertTrue(!service.shouldWarnOnAllowedPlacement(Level.OVERWORLD, biomeHolder(plains), Blocks.ACACIA_SAPLING.defaultBlockState()), "unplantable saplings should block instead of warning as allowed placement");
 	}
 
 	private static void decisionServiceWithersOnlyPlantingAllowedNaturalGrowthDenials() {
