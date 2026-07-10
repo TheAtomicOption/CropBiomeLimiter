@@ -92,7 +92,7 @@ public final class CropDecisionService {
 		}
 
 		try {
-			if (!shouldEvaluate(state)) {
+			if (!shouldEvaluate(state) || !growableBlockClassifier.hasNaturalGrowthTick(state)) {
 				return false;
 			}
 			CropBehavior behavior = behaviorFor(dimension, biome, state.getBlock());
@@ -125,7 +125,9 @@ public final class CropDecisionService {
 		}
 
 		try {
-			if (!config.generalOptions().affectsBlockPlacement() || !shouldEvaluate(state)) {
+			if (!config.generalOptions().affectsBlockPlacement()
+					|| !shouldEvaluate(state)
+					|| !growableBlockClassifier.hasNaturalGrowthTick(state)) {
 				return false;
 			}
 			CropBehavior behavior = behaviorFor(dimension, biome, state.getBlock());

@@ -89,4 +89,17 @@ public final class GrowableBlockClassifier {
 			return false;
 		}
 	}
+
+	public boolean hasNaturalGrowthTick(BlockState state) {
+		if (state == null) {
+			return false;
+		}
+
+		try {
+			return isTrackedGrowable(state) && state.isRandomlyTicking();
+		} catch (RuntimeException exception) {
+			CropBiomeLimiter.LOGGER.debug("Ignoring natural growth candidate because block classification failed.", exception);
+			return false;
+		}
+	}
 }
