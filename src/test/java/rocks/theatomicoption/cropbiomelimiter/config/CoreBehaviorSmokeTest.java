@@ -31,6 +31,7 @@ public final class CoreBehaviorSmokeTest {
 		defaultThresholdConfigAllowsAndWarnsWrongClimateCactusPlacement();
 		unplantableSaplingsDenyPlacement();
 		decisionServiceWithersOnlyPlantingAllowedNaturalGrowthDenials();
+		bonemealRequiredStaticFlowersDoNotWarnOrWither();
 		creativeModeBypassesPlayerActionRestrictions();
 		decisionServiceHonorsTogglesExclusionsAndFallbacks();
 	}
@@ -42,6 +43,13 @@ public final class CoreBehaviorSmokeTest {
 		assertTrue(classifier.isTrackedGrowable(Blocks.WHEAT.defaultBlockState()), "classifier should track crop blocks");
 		assertTrue(classifier.isTrackedGrowable(Blocks.OAK_SAPLING.defaultBlockState()), "classifier should track saplings");
 		assertTrue(classifier.isTrackedGrowable(Blocks.BROWN_MUSHROOM.defaultBlockState()), "classifier should track mushrooms");
+		assertTrue(classifier.isTrackedGrowable(Blocks.PEONY.defaultBlockState()), "classifier should track bonemealable decorative flowers");
+		assertTrue(classifier.hasNaturalGrowthTick(Blocks.WHEAT.defaultBlockState()), "classifier should identify crops with natural random tick growth");
+		assertTrue(classifier.hasNaturalGrowthTick(Blocks.OAK_SAPLING.defaultBlockState()), "classifier should identify saplings with natural random tick growth");
+		assertTrue(!classifier.hasNaturalGrowthTick(Blocks.PEONY.defaultBlockState()), "classifier should not treat static flowers as natural random tick growth");
+		assertTrue(!classifier.hasNaturalGrowthTick(Blocks.ROSE_BUSH.defaultBlockState()), "classifier should not treat rose bushes as natural random tick growth");
+		assertTrue(!classifier.hasNaturalGrowthTick(Blocks.POPPY.defaultBlockState()), "classifier should not treat poppies as natural random tick growth");
+		assertTrue(!classifier.hasNaturalGrowthTick(Blocks.RED_TULIP.defaultBlockState()), "classifier should not treat tulips as natural random tick growth");
 		assertTrue(!classifier.isTrackedGrowable(Blocks.DEAD_BUSH.defaultBlockState()), "classifier should not track dead bush");
 		for (Block block : GrowableBlockClassifier.defaultGrowableBlocks()) {
 			assertTrue(classifier.isTrackedGrowable(block.defaultBlockState()), "classifier should track default growable " + block);
@@ -177,6 +185,31 @@ public final class CoreBehaviorSmokeTest {
 		assertTrue(!service.shouldWitherOnSuccessfulNaturalGrowth(Level.OVERWORLD, biomeHolder(desert), Blocks.DEAD_BUSH.defaultBlockState()), "dead bush should not be controlled by natural growth rules");
 		assertTrue(!service.shouldWarnOnAllowedPlacement(Level.OVERWORLD, biomeHolder(desert), Blocks.DEAD_BUSH.defaultBlockState()), "dead bush placement should not warn");
 		assertTrue(service.canPlace(Level.OVERWORLD, biomeHolder(snowyPlains), Blocks.DEAD_BUSH.defaultBlockState()), "dead bush placement should not be blocked by the mod");
+	}
+
+	private static void bonemealRequiredStaticFlowersDoNotWarnOrWither() {
+		ResourceLocation plains = id("minecraft:plains");
+		ExplicitModeRules rules = new ExplicitModeRules(
+				CropBehavior.GROWABLE,
+				Map.of(
+						id("minecraft:peony"), Map.of(plains, CropBehavior.BONEMEAL_REQUIRED),
+						id("minecraft:rose_bush"), Map.of(plains, CropBehavior.BONEMEAL_REQUIRED),
+						id("minecraft:poppy"), Map.of(plains, CropBehavior.BONEMEAL_REQUIRED),
+						id("minecraft:red_tulip"), Map.of(plains, CropBehavior.BONEMEAL_REQUIRED)
+				)
+		);
+		CropDecisionService service = decisionService(GeneralOptions.defaults(), rules);
+
+		assertStaticFlowerDoesNotWarnOrWither(service, plains, Blocks.PEONY);
+		assertStaticFlowerDoesNotWarnOrWither(service, plains, Blocks.ROSE_BUSH);
+		assertStaticFlowerDoesNotWarnOrWither(service, plains, Blocks.POPPY);
+		assertStaticFlowerDoesNotWarnOrWither(service, plains, Blocks.RED_TULIP);
+	}
+
+	private static void assertStaticFlowerDoesNotWarnOrWither(CropDecisionService service, ResourceLocation biome, Block flower) {
+		assertTrue(service.canPlace(Level.OVERWORLD, biomeHolder(biome), flower.defaultBlockState()), "bonemeal-required decorative flowers should still be plantable");
+		assertTrue(!service.shouldWarnOnAllowedPlacement(Level.OVERWORLD, biomeHolder(biome), flower.defaultBlockState()), "bonemeal-required decorative flowers should not warn because they do not naturally grow");
+		assertTrue(!service.shouldWitherOnSuccessfulNaturalGrowth(Level.OVERWORLD, biomeHolder(biome), flower.defaultBlockState()), "bonemeal-required decorative flowers should not wither because they do not naturally grow");
 	}
 
 	private static void creativeModeBypassesPlayerActionRestrictions() {
