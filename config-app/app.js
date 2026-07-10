@@ -186,6 +186,28 @@ export const DEFAULT_BIOMES = [
 	{ id: "minecraft:end_barrens", temperature: 0.5, has_precipitation: false }
 ];
 
+const DEFAULT_NETHER_BIOME_IDS = new Set([
+	"minecraft:nether_wastes",
+	"minecraft:warped_forest",
+	"minecraft:crimson_forest",
+	"minecraft:soul_sand_valley",
+	"minecraft:basalt_deltas"
+]);
+
+const DEFAULT_END_BIOME_IDS = new Set([
+	"minecraft:the_end",
+	"minecraft:end_highlands",
+	"minecraft:end_midlands",
+	"minecraft:small_end_islands",
+	"minecraft:end_barrens"
+]);
+
+export const DEFAULT_BIOMES_BY_DIMENSION = {
+	"minecraft:overworld": DEFAULT_BIOMES.filter((biome) => !DEFAULT_NETHER_BIOME_IDS.has(biome.id) && !DEFAULT_END_BIOME_IDS.has(biome.id)),
+	"minecraft:the_nether": DEFAULT_BIOMES.filter((biome) => DEFAULT_NETHER_BIOME_IDS.has(biome.id)),
+	"minecraft:the_end": DEFAULT_BIOMES.filter((biome) => DEFAULT_END_BIOME_IDS.has(biome.id))
+};
+
 const DEFAULT_GENERAL = {
 	schema_version: 1,
 	affects_bonemeal: true,
@@ -214,7 +236,7 @@ export const DEFAULT_THRESHOLD = {
 };
 
 const EXPLICIT_DEFAULT_SOURCE_THRESHOLD = createExplicitDefaultSourceThreshold();
-export const DEFAULT_EXPLICIT = createExplicitFromThreshold(EXPLICIT_DEFAULT_SOURCE_THRESHOLD, DEFAULT_BIOMES);
+export const DEFAULT_EXPLICIT = createExplicitFromThreshold(EXPLICIT_DEFAULT_SOURCE_THRESHOLD, DEFAULT_BIOMES_BY_DIMENSION);
 
 const state = {
 	general: clone(DEFAULT_GENERAL),
@@ -504,10 +526,12 @@ function growable(minTemperature, maxTemperature, precipitation) {
 }
 
 export function createExplicitFromThreshold(threshold, biomes) {
+	const fallbackBiomes = Array.isArray(biomes) ? biomes : DEFAULT_BIOMES;
+	const biomesByDimension = !Array.isArray(biomes) && isObject(biomes) ? biomes : {};
 	return {
 		schema_version: 1,
-		fallback: explicitRulesFromThreshold(threshold?.fallback, biomes),
-		dimensions: normalizeMap(threshold?.dimensions, (rules) => explicitRulesFromThreshold(rules, biomes))
+		fallback: explicitRulesFromThreshold(threshold?.fallback, fallbackBiomes),
+		dimensions: normalizeMap(threshold?.dimensions, (rules, dimension) => explicitRulesFromThreshold(rules, biomesByDimension[dimension] ?? fallbackBiomes))
 	};
 }
 
@@ -1831,7 +1855,7 @@ function normalizeBehaviorMap(value) {
 function normalizeMap(value, mapper) {
 	const normalized = {};
 	for (const [key, inner] of Object.entries(value ?? {})) {
-		normalized[key] = mapper(inner);
+		normalized[key] = mapper(inner, key);
 	}
 	return normalized;
 }

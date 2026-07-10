@@ -27,8 +27,9 @@ The app edits the same split config files used by the Fabric mod. It keeps Expli
 
 The app validates loaded files, supports copying the active dimension mode/rules to another dimension, and can use registry snapshots exported by `/cropbiomelimiter export-registry` so modded dimensions, biomes, and growable crop blocks appear in the grids.
 
-Developer smoke test:
+Developer smoke test from the repository root:
 
 ```console
-npm test
+./gradlew runUnitTests
+.\gradlew.bat runUnitTests
 ```

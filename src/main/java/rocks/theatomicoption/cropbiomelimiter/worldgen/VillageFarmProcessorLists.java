@@ -82,23 +82,23 @@ public final class VillageFarmProcessorLists {
 		if (ProcessorLists.FARM_SNOWY.equals(key)) {
 			return Optional.of(farmProcessors(
 					replaceWheatWith(Blocks.BEETROOTS, 0.75F),
-					replaceWheatWith(Blocks.POTATOES, 0.60F)
+					replaceWheatWith(Blocks.POTATOES, 1.00F)
 			));
 		}
 		if (ProcessorLists.FARM_TAIGA.equals(key)) {
 			return Optional.of(farmProcessors(
 					replaceWheatWith(Blocks.BEETROOTS, 0.25F),
-					replaceWheatWith(Blocks.POTATOES, 0.70F)
+					replaceWheatWith(Blocks.POTATOES, 1.00F)
 			));
 		}
 		if (ProcessorLists.FARM_PLAINS.equals(key)) {
 			return Optional.of(farmProcessors(
 					replaceWheatWith(Blocks.POTATOES, 0.15F),
-					replaceWheatWith(Blocks.CARROTS, 0.25F)
+					replaceWheatWith(Blocks.CARROTS, 1.00F)
 			));
 		}
 		if (ProcessorLists.FARM_SAVANNA.equals(key) || ProcessorLists.FARM_DESERT.equals(key)) {
-			return Optional.of(farmProcessors(replaceWheatWith(Blocks.CARROTS, 0.80F)));
+			return Optional.of(farmProcessors(replaceWheatWith(Blocks.CARROTS, 1.00F)));
 		}
 		return Optional.empty();
 	}

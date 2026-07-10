@@ -208,32 +208,36 @@ public final class CropBiomeLimiterConfigLoader {
 		Map<ResourceKey<Level>, ExplicitModeRules> dimensions = new LinkedHashMap<>();
 		config.dimensionRules().entrySet().stream()
 				.sorted(Comparator.comparing(entry -> entry.getKey().identifier().toString()))
-				.forEach(entry -> dimensions.put(entry.getKey(), explicitRulesFor(entry.getValue())));
+				.forEach(entry -> dimensions.put(entry.getKey(), explicitRulesFor(entry.getKey(), entry.getValue())));
 		return new ExplicitModeFile(fallback, Map.copyOf(dimensions));
 	}
 
 	private static ExplicitModeRules explicitRulesFor(DimensionRules rules) {
+		return explicitRulesFor(null, rules);
+	}
+
+	private static ExplicitModeRules explicitRulesFor(ResourceKey<Level> dimension, DimensionRules rules) {
 		if (rules instanceof ExplicitModeRules explicitModeRules) {
 			return explicitModeRules;
 		}
 		if (rules instanceof ThresholdModeRules thresholdModeRules) {
-			return explicitRulesFromThreshold(thresholdModeRules);
+			return explicitRulesFromThreshold(thresholdModeRules, defaultBiomeClimates(dimension));
 		}
 		return new ExplicitModeRules(defaultBehavior(rules), Map.of());
 	}
 
-	private static ExplicitModeRules explicitRulesFromThreshold(ThresholdModeRules rules) {
+	private static ExplicitModeRules explicitRulesFromThreshold(ThresholdModeRules rules, List<BiomeClimate> biomes) {
 		CropBehavior defaultBehavior = rules.defaultRule().defaultBehavior();
 		Map<Identifier, Map<Identifier, CropBehavior>> cropBiomeRules = new LinkedHashMap<>();
 		rules.cropRules().entrySet().stream()
 				.sorted(Comparator.comparing(entry -> entry.getKey().toString()))
-				.forEach(entry -> addExplicitCropRules(entry.getKey(), entry.getValue(), defaultBehavior, cropBiomeRules));
+				.forEach(entry -> addExplicitCropRules(entry.getKey(), entry.getValue(), defaultBehavior, biomes, cropBiomeRules));
 		return new ExplicitModeRules(defaultBehavior, immutableCropBiomeRules(cropBiomeRules));
 	}
 
-	private static void addExplicitCropRules(Identifier cropId, ThresholdCropRule thresholdRule, CropBehavior explicitDefault, Map<Identifier, Map<Identifier, CropBehavior>> cropBiomeRules) {
+	private static void addExplicitCropRules(Identifier cropId, ThresholdCropRule thresholdRule, CropBehavior explicitDefault, List<BiomeClimate> biomes, Map<Identifier, Map<Identifier, CropBehavior>> cropBiomeRules) {
 		Map<Identifier, CropBehavior> biomeRules = new LinkedHashMap<>();
-		for (BiomeClimate biome : defaultBiomeClimates()) {
+		for (BiomeClimate biome : biomes) {
 			CropBehavior behavior = resolveThresholdRule(thresholdRule, biome);
 			if (behavior != explicitDefault) {
 				biomeRules.put(biome.id(), behavior);
@@ -707,7 +711,24 @@ public final class CropBiomeLimiterConfigLoader {
 		}
 	}
 
-	private static List<BiomeClimate> defaultBiomeClimates() {
+	private static List<BiomeClimate> defaultBiomeClimates(ResourceKey<Level> dimension) {
+		if (Level.OVERWORLD.equals(dimension)) {
+			return defaultOverworldBiomeClimates();
+		}
+		if (Level.NETHER.equals(dimension)) {
+			return defaultNetherBiomeClimates();
+		}
+		if (Level.END.equals(dimension)) {
+			return defaultEndBiomeClimates();
+		}
+		List<BiomeClimate> biomes = new ArrayList<>();
+		biomes.addAll(defaultOverworldBiomeClimates());
+		biomes.addAll(defaultNetherBiomeClimates());
+		biomes.addAll(defaultEndBiomeClimates());
+		return List.copyOf(biomes);
+	}
+
+	private static List<BiomeClimate> defaultOverworldBiomeClimates() {
 		return List.of(
 				biomeClimate("minecraft:the_void", 0.5F, false),
 				biomeClimate("minecraft:plains", 0.8F, true),
@@ -763,12 +784,22 @@ public final class CropBiomeLimiterConfigLoader {
 				biomeClimate("minecraft:mushroom_fields", 0.9F, true),
 				biomeClimate("minecraft:dripstone_caves", 0.8F, true),
 				biomeClimate("minecraft:lush_caves", 0.5F, true),
-				biomeClimate("minecraft:deep_dark", 0.8F, true),
+				biomeClimate("minecraft:deep_dark", 0.8F, true)
+		);
+	}
+
+	private static List<BiomeClimate> defaultNetherBiomeClimates() {
+		return List.of(
 				biomeClimate("minecraft:nether_wastes", 2.0F, false),
 				biomeClimate("minecraft:warped_forest", 2.0F, false),
 				biomeClimate("minecraft:crimson_forest", 2.0F, false),
 				biomeClimate("minecraft:soul_sand_valley", 2.0F, false),
-				biomeClimate("minecraft:basalt_deltas", 2.0F, false),
+				biomeClimate("minecraft:basalt_deltas", 2.0F, false)
+		);
+	}
+
+	private static List<BiomeClimate> defaultEndBiomeClimates() {
+		return List.of(
 				biomeClimate("minecraft:the_end", 0.5F, false),
 				biomeClimate("minecraft:end_highlands", 0.5F, false),
 				biomeClimate("minecraft:end_midlands", 0.5F, false),

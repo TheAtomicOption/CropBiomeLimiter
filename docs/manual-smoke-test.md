@@ -128,7 +128,7 @@ The rewrite intentionally uses `temperature` plus `has_precipitation` only. Do n
 | malformed file | Put invalid JSON in `threshold-mode.json`, then start the game | The bad file remains on disk, the mod logs a warning, and gameplay uses defaults |
 | reload after valid edit | Edit a rule and run `/cropbiomelimiter reload-config` | New decisions apply without restarting |
 | reload after bad edit | Save malformed JSON and run `/cropbiomelimiter reload-config` | The command reports warnings or failure, and gameplay remains permissive/default rather than crashing |
-| registry snapshot | Run `/cropbiomelimiter export-registry` | The world folder gets `cropbiomelimiter-registry-snapshot.json` with dimensions, biomes, crops, counts, and `config_schema` |
+| registry snapshot | Run `/cropbiomelimiter export-registry` | `run/config/cropbiomelimiter` gets `cropbiomelimiter-registry-snapshot.json` with dimensions, biomes, crops, counts, and `config_schema` |
 
 ## Results
 

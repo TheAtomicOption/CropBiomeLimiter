@@ -1,6 +1,8 @@
 package rocks.theatomicoption.cropbiomelimiter.config;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -15,6 +17,7 @@ public final class ConfigAppInstallerSmokeTest {
 		writesConfigAppWhenMissing();
 		recreatesDeletedConfigAppFiles();
 		refreshesChangedConfigAppFiles();
+		bundledAppScriptUsesDimensionBiomeDefaults();
 	}
 
 	private static void writesConfigAppWhenMissing() throws IOException {
@@ -63,6 +66,22 @@ public final class ConfigAppInstallerSmokeTest {
 		ConfigAppInstallResult result = ConfigAppInstaller.tryInstall(directory);
 		assertEquals(List.of("Open Config App.cmd"), result.createdFiles(), "startup should refresh changed bundled config app files");
 		assertTrue(Files.readString(launcher).contains("ConfigAppServer"), "changed launcher should be refreshed from bundled resources");
+	}
+
+	private static void bundledAppScriptUsesDimensionBiomeDefaults() throws IOException {
+		String appScript = bundledText("config-app/app.js");
+		assertTrue(appScript.contains("DEFAULT_BIOMES_BY_DIMENSION"), "bundled app should define dimension-specific vanilla biome defaults");
+		assertTrue(appScript.contains("createExplicitFromThreshold(EXPLICIT_DEFAULT_SOURCE_THRESHOLD, DEFAULT_BIOMES_BY_DIMENSION)"),
+				"bundled app should generate default Explicit mode from dimension-specific biome defaults");
+	}
+
+	private static String bundledText(String resourcePath) throws IOException {
+		try (InputStream stream = ConfigAppInstallerSmokeTest.class.getClassLoader().getResourceAsStream(resourcePath)) {
+			if (stream == null) {
+				throw new AssertionError(resourcePath + " should be packaged in the test runtime classpath");
+			}
+			return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+		}
 	}
 
 	private static Path appDirectory(Path minecraftConfigDirectory) {

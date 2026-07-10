@@ -87,6 +87,38 @@ public final class ConfigAppSchema {
 		};
 	}
 
+	public static String translationKey(RuleMode mode) {
+		if (mode == null) {
+			return "schema.cropbiomelimiter.mode.unknown";
+		}
+		return switch (mode) {
+			case EXPLICIT -> "schema.cropbiomelimiter.mode.explicit";
+			case THRESHOLD -> "schema.cropbiomelimiter.mode.threshold";
+		};
+	}
+
+	public static String translationKey(CropBehavior behavior) {
+		if (behavior == null) {
+			return "schema.cropbiomelimiter.behavior.unknown";
+		}
+		return switch (behavior) {
+			case GROWABLE -> "schema.cropbiomelimiter.behavior.growable";
+			case BONEMEAL_REQUIRED -> "schema.cropbiomelimiter.behavior.bonemeal_required";
+			case UNPLANTABLE -> "schema.cropbiomelimiter.behavior.unplantable";
+		};
+	}
+
+	public static String translationKey(PrecipitationRequirement requirement) {
+		if (requirement == null) {
+			return "schema.cropbiomelimiter.precipitation.unknown";
+		}
+		return switch (requirement) {
+			case REQUIRED -> "schema.cropbiomelimiter.precipitation.required";
+			case FORBIDDEN -> "schema.cropbiomelimiter.precipitation.forbidden";
+			case IGNORED -> "schema.cropbiomelimiter.precipitation.ignored";
+		};
+	}
+
 	private static JsonObject configFilesJson() {
 		JsonObject files = new JsonObject();
 		files.addProperty("general", GENERAL_FILE_NAME);
@@ -111,6 +143,7 @@ public final class ConfigAppSchema {
 			JsonObject value = new JsonObject();
 			value.addProperty("id", mode.serializedName());
 			value.addProperty("display_name", displayName(mode));
+			value.addProperty("translation_key", translationKey(mode));
 			value.addProperty("dimension_scoped", true);
 			values.add(value);
 		}
@@ -123,6 +156,7 @@ public final class ConfigAppSchema {
 			JsonObject value = new JsonObject();
 			value.addProperty("id", behavior.serializedName());
 			value.addProperty("display_name", displayName(behavior));
+			value.addProperty("translation_key", translationKey(behavior));
 			value.addProperty("allows_planting", behavior.allowsPlanting());
 			value.addProperty("allows_natural_growth", behavior.allowsNaturalGrowth());
 			value.addProperty("allows_bonemeal", behavior.allowsBonemeal());
@@ -137,6 +171,7 @@ public final class ConfigAppSchema {
 			JsonObject value = new JsonObject();
 			value.addProperty("id", requirement.serializedName());
 			value.addProperty("display_name", displayName(requirement));
+			value.addProperty("translation_key", translationKey(requirement));
 			values.add(value);
 		}
 		return values;

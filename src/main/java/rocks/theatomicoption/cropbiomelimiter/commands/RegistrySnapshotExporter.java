@@ -13,6 +13,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -20,7 +21,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.storage.LevelResource;
 import rocks.theatomicoption.cropbiomelimiter.CropBiomeLimiter;
 import rocks.theatomicoption.cropbiomelimiter.config.ConfigAppSchema;
 import rocks.theatomicoption.cropbiomelimiter.logic.GrowableBlockClassifier;
@@ -32,7 +32,7 @@ public final class RegistrySnapshotExporter {
 	}
 
 	public static ExportResult export(MinecraftServer server) throws IOException {
-		Path output = server.getWorldPath(LevelResource.ROOT).resolve(ConfigAppSchema.REGISTRY_SNAPSHOT_FILE_NAME);
+		Path output = snapshotPath(FabricLoader.getInstance().getConfigDir());
 		Files.createDirectories(output.getParent());
 		Snapshot snapshot = createSnapshot(server);
 
@@ -41,6 +41,12 @@ public final class RegistrySnapshotExporter {
 		}
 
 		return new ExportResult(output, snapshot.dimensionCount(), snapshot.biomeCount(), snapshot.cropCount());
+	}
+
+	public static Path snapshotPath(Path minecraftConfigDirectory) {
+		return minecraftConfigDirectory
+				.resolve(ConfigAppSchema.CONFIG_DIRECTORY_NAME)
+				.resolve(ConfigAppSchema.REGISTRY_SNAPSHOT_FILE_NAME);
 	}
 
 	private static Snapshot createSnapshot(MinecraftServer server) {

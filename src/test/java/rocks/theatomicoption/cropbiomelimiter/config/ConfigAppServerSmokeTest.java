@@ -45,7 +45,26 @@ public final class ConfigAppServerSmokeTest {
 					.build();
 			HttpResponse<String> writeResponse = send(client, writeRequest);
 			assertEquals(200, writeResponse.statusCode(), "server should write installed general config");
-			assertEquals(updatedJson, Files.readString(configDirectory.resolve(CropBiomeLimiterConfigLoader.GENERAL_FILE_NAME)), "server should persist config file edits");
+			String standardizedJson = """
+					{
+					  "schema_version": 1,
+					  "chat_info": false
+					}""";
+			assertEquals(standardizedJson, Files.readString(configDirectory.resolve(CropBiomeLimiterConfigLoader.GENERAL_FILE_NAME)), "server should persist config file edits with Gson formatting");
+
+			HttpResponse<String> malformedResponse = send(client, HttpRequest.newBuilder(generalUri)
+					.header("Content-Type", "application/json")
+					.PUT(HttpRequest.BodyPublishers.ofString("{ this is not json"))
+					.build());
+			assertEquals(400, malformedResponse.statusCode(), "server should reject malformed JSON config edits");
+			assertEquals(standardizedJson, Files.readString(configDirectory.resolve(CropBiomeLimiterConfigLoader.GENERAL_FILE_NAME)), "malformed JSON should not replace the config file");
+
+			HttpResponse<String> nonObjectResponse = send(client, HttpRequest.newBuilder(generalUri)
+					.header("Content-Type", "application/json")
+					.PUT(HttpRequest.BodyPublishers.ofString("[]"))
+					.build());
+			assertEquals(400, nonObjectResponse.statusCode(), "server should reject non-object JSON config edits");
+			assertEquals(standardizedJson, Files.readString(configDirectory.resolve(CropBiomeLimiterConfigLoader.GENERAL_FILE_NAME)), "non-object JSON should not replace the config file");
 
 			HttpResponse<String> deniedResponse = send(client, HttpRequest.newBuilder(server.uri().resolve("/api/files/snapshot"))
 					.PUT(HttpRequest.BodyPublishers.ofString("{}"))

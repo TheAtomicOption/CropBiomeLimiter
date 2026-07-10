@@ -3,6 +3,7 @@ package rocks.theatomicoption.cropbiomelimiter.configapp;
 import java.awt.Desktop;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Writer;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -18,6 +19,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
@@ -25,6 +31,7 @@ public final class ConfigAppServer {
 	private static final int DEFAULT_PORT = 41731;
 	private static final int MAX_PORT_ATTEMPTS = 100;
 	private static final int MAX_CONFIG_BYTES = 4 * 1024 * 1024;
+	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final Map<String, String> CONFIG_FILES = Map.of(
 			"general", "general.json",
 			"explicit", "explicit-mode.json",
@@ -181,12 +188,19 @@ public final class ConfigAppServer {
 				sendText(exchange, 413, "Payload Too Large", "Config file is too large.");
 				return;
 			}
+			Optional<JsonObject> config = parseConfigObject(body);
+			if (config.isEmpty()) {
+				sendText(exchange, 400, "Bad Request", "Config file must be a JSON object.");
+				return;
+			}
 
 			Files.createDirectories(configDirectory);
 			Path target = configPath(key);
 			Path temp = Files.createTempFile(configDirectory, CONFIG_FILES.get(key), ".tmp");
 			try {
-				Files.write(temp, body, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+				try (Writer writer = Files.newBufferedWriter(temp, StandardCharsets.UTF_8, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
+					GSON.toJson(config.get(), writer);
+				}
 				try {
 					Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 				} catch (IOException exception) {
@@ -196,6 +210,18 @@ public final class ConfigAppServer {
 				Files.deleteIfExists(temp);
 			}
 			sendText(exchange, 200, "OK", "{\"saved\":true}");
+		}
+
+		private Optional<JsonObject> parseConfigObject(byte[] body) {
+			try {
+				JsonElement root = JsonParser.parseString(new String(body, StandardCharsets.UTF_8));
+				if (root == null || !root.isJsonObject()) {
+					return Optional.empty();
+				}
+				return Optional.of(root.getAsJsonObject());
+			} catch (RuntimeException exception) {
+				return Optional.empty();
+			}
 		}
 
 		private Path configPath(String key) {

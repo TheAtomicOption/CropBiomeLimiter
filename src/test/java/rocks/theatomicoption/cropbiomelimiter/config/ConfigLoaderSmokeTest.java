@@ -60,6 +60,7 @@ public final class ConfigLoaderSmokeTest {
 		exportsConfigAppSchemaContract();
 		generatedThresholdConfigDocumentsEveryDefaultCropBehavior();
 		generatedExplicitConfigMirrorsThresholdDefaults();
+		generatedExplicitConfigUsesDimensionBiomeLists();
 		defaultVanillaRulesCoverKeyPlants();
 		defaultThresholdRulesUseBiomeClimateStrategy();
 	}
@@ -493,6 +494,28 @@ public final class ConfigLoaderSmokeTest {
 		assertEquals("growable", explicitBehavior(end, "minecraft:the_end", "minecraft:bush"), "Generated Explicit mode should mirror Threshold mode for bush in End dimensions");
 	}
 
+	private static void generatedExplicitConfigUsesDimensionBiomeLists() throws IOException {
+		Path directory = Files.createTempDirectory("cropbiomelimiter-generated-explicit-biome-list-test");
+		ConfigLoadResult result = CropBiomeLimiterConfigLoader.tryLoadConfig(directory);
+		assertTrue(result.createdDefault(), "fresh startup should write default split config files");
+
+		JsonObject root = JsonParser.parseString(Files.readString(configPath(directory, CropBiomeLimiterConfigLoader.EXPLICIT_MODE_FILE_NAME))).getAsJsonObject();
+		JsonObject dimensions = root.getAsJsonObject("dimensions");
+		JsonObject overworld = dimensions.getAsJsonObject("minecraft:overworld");
+		JsonObject nether = dimensions.getAsJsonObject("minecraft:the_nether");
+		JsonObject end = dimensions.getAsJsonObject("minecraft:the_end");
+
+		assertTrue(hasExplicitBiome(overworld, "minecraft:plains"), "Overworld Explicit defaults should include Overworld biomes");
+		assertTrue(!hasExplicitBiome(overworld, "minecraft:nether_wastes"), "Overworld Explicit defaults should not include Nether biomes");
+		assertTrue(!hasExplicitBiome(overworld, "minecraft:the_end"), "Overworld Explicit defaults should not include End biomes");
+		assertTrue(hasExplicitBiome(nether, "minecraft:nether_wastes"), "Nether Explicit defaults should include Nether biomes");
+		assertTrue(!hasExplicitBiome(nether, "minecraft:plains"), "Nether Explicit defaults should not include Overworld biomes");
+		assertTrue(!hasExplicitBiome(nether, "minecraft:the_end"), "Nether Explicit defaults should not include End biomes");
+		assertTrue(hasExplicitBiome(end, "minecraft:the_end"), "End Explicit defaults should include End biomes");
+		assertTrue(!hasExplicitBiome(end, "minecraft:plains"), "End Explicit defaults should not include Overworld biomes");
+		assertTrue(!hasExplicitBiome(end, "minecraft:nether_wastes"), "End Explicit defaults should not include Nether biomes");
+	}
+
 	private static void assertGeneratedDimensionRulesDocumentCropBehavior(JsonObject dimensions, String dimensionId) {
 		JsonObject crops = dimensions.getAsJsonObject(dimensionId).getAsJsonObject("crops");
 		for (Block block : GrowableBlockClassifier.defaultGrowableBlocks()) {
@@ -517,6 +540,10 @@ public final class ConfigLoaderSmokeTest {
 			return defaultBehavior;
 		}
 		return crops.get(cropId).getAsString();
+	}
+
+	private static boolean hasExplicitBiome(JsonObject dimensionRules, String biomeId) {
+		return dimensionRules.getAsJsonObject("biomes").has(biomeId);
 	}
 
 	private static void assertDefaultRulesCoverTrackedVanillaGrowables(ThresholdModeRules rules, String dimensionName) {

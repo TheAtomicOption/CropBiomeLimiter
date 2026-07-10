@@ -101,9 +101,15 @@ public class CropBiomeLimiter implements ModInitializer {
 	private static void registerCallbacks() {
 		try {
 			PlayerActionHandler.register();
+		} catch (RuntimeException exception) {
+			cropDecisionService = CropDecisionService.allowAll();
+			LOGGER.error("Crop Biome Limiter failed to register gameplay callbacks. Gameplay will be allowed by default.", exception);
+		}
+
+		try {
 			RegistrySnapshotCommand.register();
 		} catch (RuntimeException exception) {
-			LOGGER.error("Crop Biome Limiter failed to register callbacks or commands. Gameplay will be allowed by default.", exception);
+			LOGGER.error("Crop Biome Limiter failed to register admin commands. Gameplay callbacks will keep their current behavior.", exception);
 		}
 	}
 

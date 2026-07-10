@@ -7,10 +7,26 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.permissions.Permissions;
 import rocks.theatomicoption.cropbiomelimiter.CropBiomeLimiter;
 
 public final class RegistrySnapshotCommand {
+	public static final String EXPORT_SUCCESS_KEY = "commands.cropbiomelimiter.export_registry.success";
+	public static final String EXPORT_FAILURE_KEY = "commands.cropbiomelimiter.export_registry.failure";
+	public static final String EXPORT_COUNT_DIMENSION_ONE_KEY = "commands.cropbiomelimiter.export_registry.count.dimension.one";
+	public static final String EXPORT_COUNT_DIMENSION_MANY_KEY = "commands.cropbiomelimiter.export_registry.count.dimension.many";
+	public static final String EXPORT_COUNT_BIOME_ONE_KEY = "commands.cropbiomelimiter.export_registry.count.biome.one";
+	public static final String EXPORT_COUNT_BIOME_MANY_KEY = "commands.cropbiomelimiter.export_registry.count.biome.many";
+	public static final String EXPORT_COUNT_CROP_ONE_KEY = "commands.cropbiomelimiter.export_registry.count.crop.one";
+	public static final String EXPORT_COUNT_CROP_MANY_KEY = "commands.cropbiomelimiter.export_registry.count.crop.many";
+	public static final String RELOAD_SUCCESS_KEY = "commands.cropbiomelimiter.reload_config.success";
+	public static final String RELOAD_RESTORED_DEFAULTS_KEY = "commands.cropbiomelimiter.reload_config.restored_defaults";
+	public static final String RELOAD_RESTORED_DEFAULTS_WITH_PATH_KEY = "commands.cropbiomelimiter.reload_config.restored_defaults_with_path";
+	public static final String RELOAD_WARNINGS_ONE_KEY = "commands.cropbiomelimiter.reload_config.warnings.one";
+	public static final String RELOAD_WARNINGS_MANY_KEY = "commands.cropbiomelimiter.reload_config.warnings.many";
+	public static final String RELOAD_FAILURE_KEY = "commands.cropbiomelimiter.reload_config.failure";
+
 	private RegistrySnapshotCommand() {
 	}
 
@@ -39,64 +55,68 @@ public final class RegistrySnapshotCommand {
 	private static int exportRegistry(CommandSourceStack source) {
 		try {
 			RegistrySnapshotExporter.ExportResult result = RegistrySnapshotExporter.export(source.getServer());
-			source.sendSuccess(() -> Component.literal(exportSuccessMessage(result)), true);
+			source.sendSuccess(() -> exportSuccessMessage(result), true);
 			return Command.SINGLE_SUCCESS;
 		} catch (IOException | RuntimeException exception) {
 			CropBiomeLimiter.LOGGER.error("Crop Biome Limiter failed to export a registry snapshot.", exception);
-			source.sendFailure(Component.literal("Crop Biome Limiter could not export the registry snapshot. See the server log for details."));
+			source.sendFailure(Component.translatable(EXPORT_FAILURE_KEY));
 			return 0;
 		}
 	}
 
-	private static String exportSuccessMessage(RegistrySnapshotExporter.ExportResult result) {
-		return "Crop Biome Limiter registry snapshot exported "
-				+ count(result.dimensionCount(), "dimension")
-				+ ", "
-				+ count(result.biomeCount(), "biome")
-				+ ", and "
-				+ count(result.cropCount(), "growable block")
-				+ " to "
-				+ result.path()
-				+ ".";
+	private static Component exportSuccessMessage(RegistrySnapshotExporter.ExportResult result) {
+		return Component.translatable(
+				EXPORT_SUCCESS_KEY,
+				count(result.dimensionCount(), EXPORT_COUNT_DIMENSION_ONE_KEY, EXPORT_COUNT_DIMENSION_MANY_KEY),
+				count(result.biomeCount(), EXPORT_COUNT_BIOME_ONE_KEY, EXPORT_COUNT_BIOME_MANY_KEY),
+				count(result.cropCount(), EXPORT_COUNT_CROP_ONE_KEY, EXPORT_COUNT_CROP_MANY_KEY),
+				result.path().toString()
+		);
 	}
 
-	private static String count(int count, String singularName) {
-		return count + " " + singularName + (count == 1 ? "" : "s");
+	private static Component count(int count, String singularKey, String pluralKey) {
+		return Component.translatable(count == 1 ? singularKey : pluralKey, count);
 	}
 
 	private static int reloadConfig(CommandSourceStack source) {
 		try {
 			CropBiomeLimiter.ConfigReloadResult result = CropBiomeLimiter.reloadConfigWithResult();
 			if (result.loaded()) {
-				source.sendSuccess(() -> Component.literal(reloadSuccessMessage(result)), true);
+				source.sendSuccess(() -> reloadSuccessMessage(result), true);
 				return Command.SINGLE_SUCCESS;
 			}
 
-			source.sendFailure(Component.literal("Crop Biome Limiter could not reload config. Gameplay is allowed by default; see the server log for details."));
+			source.sendFailure(Component.translatable(RELOAD_FAILURE_KEY));
 			return 0;
 		} catch (RuntimeException exception) {
 			CropBiomeLimiter.LOGGER.error("Crop Biome Limiter failed inside the config reload command.", exception);
-			source.sendFailure(Component.literal("Crop Biome Limiter could not reload config. Gameplay is allowed by default; see the server log for details."));
+			source.sendFailure(Component.translatable(RELOAD_FAILURE_KEY));
 			return 0;
 		}
 	}
 
-	private static String reloadSuccessMessage(CropBiomeLimiter.ConfigReloadResult result) {
-		StringBuilder message = new StringBuilder("Crop Biome Limiter config reloaded.");
+	private static Component reloadSuccessMessage(CropBiomeLimiter.ConfigReloadResult result) {
+		MutableComponent message = Component.translatable(RELOAD_SUCCESS_KEY);
 		if (result.createdDefault()) {
-			message.append(" Restored missing default config file(s) ").append(result.createdDefaultFileSummary());
 			if (result.path() != null) {
-				message.append(" in ").append(result.path());
+				message.append(" ").append(Component.translatable(
+						RELOAD_RESTORED_DEFAULTS_WITH_PATH_KEY,
+						result.createdDefaultFileSummary(),
+						result.path().toString()
+				));
+			} else {
+				message.append(" ").append(Component.translatable(
+						RELOAD_RESTORED_DEFAULTS_KEY,
+						result.createdDefaultFileSummary()
+				));
 			}
-			message.append(".");
 		}
 		if (result.hasDiagnostics()) {
-			message.append(" ").append(result.diagnosticCount()).append(" warning");
-			if (result.diagnosticCount() != 1) {
-				message.append("s");
-			}
-			message.append("; see the server log.");
+			message.append(" ").append(Component.translatable(
+					result.diagnosticCount() == 1 ? RELOAD_WARNINGS_ONE_KEY : RELOAD_WARNINGS_MANY_KEY,
+					result.diagnosticCount()
+			));
 		}
-		return message.toString();
+		return message;
 	}
 }
