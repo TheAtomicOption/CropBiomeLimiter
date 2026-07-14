@@ -25,5 +25,21 @@
   "schema.cropbiomelimiter.precipitation.unknown": "Unknown precipitation",
   "schema.cropbiomelimiter.precipitation.required": "Requires precipitation",
   "schema.cropbiomelimiter.precipitation.forbidden": "Requires no precipitation",
-  "schema.cropbiomelimiter.precipitation.ignored": "Ignores precipitation"
+  "schema.cropbiomelimiter.precipitation.ignored": "Ignores precipitation",
+  "viewer.cropbiomelimiter.category.crop_atlas": "Growth biomes",
+  "viewer.cropbiomelimiter.category.biome_atlas": "Crops by biome",
+  "viewer.cropbiomelimiter.behavior_count": "%s (%s)",
+  "viewer.cropbiomelimiter.temperature": "Temperature: %s",
+  "viewer.cropbiomelimiter.temperature_label": "Temperature:",
+  "viewer.cropbiomelimiter.temperature_range": "%s to %s",
+  "viewer.cropbiomelimiter.temperature_ranges": "%s ranges",
+  "viewer.cropbiomelimiter.no_climate_ranges": "No matching ranges",
+  "viewer.cropbiomelimiter.precipitation": "Precipitation: %s",
+  "viewer.cropbiomelimiter.precipitation_yes": "Present",
+  "viewer.cropbiomelimiter.precipitation_no": "None",
+  "viewer.cropbiomelimiter.precipitation_required": "Required",
+  "viewer.cropbiomelimiter.precipitation_forbidden": "Forbidden",
+  "viewer.cropbiomelimiter.precipitation_ignored": "Any",
+  "viewer.cropbiomelimiter.precipitation_mixed": "Mixed",
+  "viewer.cropbiomelimiter.climate_rule": "%s to %s, %s: %s"
 }

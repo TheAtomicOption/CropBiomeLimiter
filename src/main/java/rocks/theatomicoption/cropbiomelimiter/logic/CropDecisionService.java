@@ -1,5 +1,7 @@
 package rocks.theatomicoption.cropbiomelimiter.logic;
 
+import java.util.Optional;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -32,6 +34,10 @@ public final class CropDecisionService {
 
 	public static CropDecisionService allowAll() {
 		return new CropDecisionService(null, null, true);
+	}
+
+	public Optional<CropBiomeLimiterConfig> config() {
+		return Optional.ofNullable(config);
 	}
 
 	public boolean canGrowNaturally(ServerLevel level, BlockPos pos, BlockState state) {

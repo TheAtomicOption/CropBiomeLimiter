@@ -35,6 +35,17 @@ The Fabric rewrite uses a clean split config folder at `config/cropbiomelimiter`
 
 The old single-file config format is intentionally not supported.
 
+## JEI and REI
+
+Just Enough Items and Roughly Enough Items are optional. When either viewer is installed, Crop Biome Limiter adds two native information categories:
+
+- **Growth biomes** answers where a selected crop can grow.
+- **Crops by biome** answers what can grow in a selected biome.
+
+Results are grouped as Growable, Bonemeal required, and Unplantable. Large groups use additional viewer pages with static slots, so every result remains available to inspect. Threshold mode also shows temperature and precipitation information; Explicit mode uses the same atlas without those climate fields.
+
+The viewer reads the client installation's local Crop Biome Limiter config. Modpacks can ship that config with the client and do not need a separate server sync feature for the atlas.
+
 ## Sources
 
 - CurseForge: https://www.curseforge.com/minecraft/mc-mods/crop-biome-limiter
