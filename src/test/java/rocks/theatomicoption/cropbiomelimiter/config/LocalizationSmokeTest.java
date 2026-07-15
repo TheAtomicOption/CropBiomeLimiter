@@ -17,6 +17,7 @@ public final class LocalizationSmokeTest {
 		JsonObject translations = translations();
 		adminCommandMessagesAreLocalized(translations);
 		schemaDisplayStringsExposeTranslationKeys(translations);
+		viewerStringsAreLocalized(translations);
 	}
 
 	private static void adminCommandMessagesAreLocalized(JsonObject translations) {
@@ -53,6 +54,29 @@ public final class LocalizationSmokeTest {
 
 		String schemaJson = ConfigAppSchema.metadataJson().toString();
 		assertTrue(schemaJson.contains("\"translation_key\""), "config app schema metadata should expose translation keys beside display names");
+	}
+
+	private static void viewerStringsAreLocalized(JsonObject translations) {
+		for (String key : List.of(
+				"viewer.cropbiomelimiter.category.crop_atlas",
+				"viewer.cropbiomelimiter.category.biome_atlas",
+				"viewer.cropbiomelimiter.behavior_count",
+				"viewer.cropbiomelimiter.temperature",
+				"viewer.cropbiomelimiter.temperature_label",
+				"viewer.cropbiomelimiter.temperature_range",
+				"viewer.cropbiomelimiter.temperature_ranges",
+				"viewer.cropbiomelimiter.no_climate_ranges",
+				"viewer.cropbiomelimiter.precipitation",
+				"viewer.cropbiomelimiter.precipitation_yes",
+				"viewer.cropbiomelimiter.precipitation_no",
+				"viewer.cropbiomelimiter.precipitation_required",
+				"viewer.cropbiomelimiter.precipitation_forbidden",
+				"viewer.cropbiomelimiter.precipitation_ignored",
+				"viewer.cropbiomelimiter.precipitation_mixed",
+				"viewer.cropbiomelimiter.climate_rule"
+		)) {
+			assertTranslation(translations, key);
+		}
 	}
 
 	private static JsonObject translations() throws IOException {
