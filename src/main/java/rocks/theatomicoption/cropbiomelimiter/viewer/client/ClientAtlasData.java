@@ -17,6 +17,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import rocks.theatomicoption.cropbiomelimiter.CropBiomeLimiter;
 import rocks.theatomicoption.cropbiomelimiter.config.CropBiomeLimiterConfig;
 import rocks.theatomicoption.cropbiomelimiter.config.DefaultCropBiomeConfig;
@@ -28,6 +30,14 @@ import rocks.theatomicoption.cropbiomelimiter.viewer.AtlasBiome;
 import rocks.theatomicoption.cropbiomelimiter.viewer.CropBiomeAtlas;
 
 public final class ClientAtlasData {
+	private static final Set<Block> NON_CROP_BONEMEAL_TARGETS = Set.of(
+			Blocks.GRASS_BLOCK,
+			Blocks.ROOTED_DIRT,
+			Blocks.NETHERRACK,
+			Blocks.CRIMSON_NYLIUM,
+			Blocks.WARPED_NYLIUM
+	);
+
 	private ClientAtlasData() {
 	}
 
@@ -89,7 +99,7 @@ public final class ClientAtlasData {
 		return Set.copyOf(dimensions);
 	}
 
-	private static Set<Identifier> crops(CropBiomeLimiterConfig config) {
+	static Set<Identifier> crops(CropBiomeLimiterConfig config) {
 		Set<Identifier> crops = new LinkedHashSet<>();
 		GrowableBlockClassifier classifier = new GrowableBlockClassifier();
 		BuiltInRegistries.BLOCK.entrySet().stream()
@@ -98,11 +108,15 @@ public final class ClientAtlasData {
 				.forEach(crops::add);
 		addConfiguredCrops(crops, config.fallbackRules());
 		config.dimensionRules().values().forEach(rules -> addConfiguredCrops(crops, rules));
-		crops.removeIf(id -> !BuiltInRegistries.BLOCK.containsKey(id));
+		crops.removeIf(id -> !BuiltInRegistries.BLOCK.containsKey(id)
+				|| NON_CROP_BONEMEAL_TARGETS.contains(BuiltInRegistries.BLOCK.getValue(id)));
 		return Set.copyOf(crops);
 	}
 
-	private static boolean isTracked(GrowableBlockClassifier classifier, net.minecraft.world.level.block.Block block) {
+	private static boolean isTracked(GrowableBlockClassifier classifier, Block block) {
+		if (NON_CROP_BONEMEAL_TARGETS.contains(block)) {
+			return false;
+		}
 		try {
 			return classifier.isTrackedGrowable(block.defaultBlockState());
 		} catch (RuntimeException exception) {
