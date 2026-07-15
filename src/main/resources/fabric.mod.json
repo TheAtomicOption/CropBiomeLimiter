@@ -17,6 +17,15 @@
 	"entrypoints": {
 		"main": [
 			"rocks.theatomicoption.cropbiomelimiter.CropBiomeLimiter"
+		],
+		"client": [
+			"rocks.theatomicoption.cropbiomelimiter.viewer.client.ViewerClientInitializer"
+		],
+		"jei_mod_plugin": [
+			"rocks.theatomicoption.cropbiomelimiter.viewer.jei.CropBiomeLimiterJeiPlugin"
+		],
+		"rei_client": [
+			"rocks.theatomicoption.cropbiomelimiter.viewer.rei.CropBiomeLimiterReiClientPlugin"
 		]
 	},
 	"mixins": [
@@ -27,5 +36,9 @@
 		"minecraft": "~1.20.1",
 		"java": ">=17",
 		"fabric-api": "*"
+	},
+	"suggests": {
+		"jei": "*",
+		"roughlyenoughitems": "*"
 	}
 }
