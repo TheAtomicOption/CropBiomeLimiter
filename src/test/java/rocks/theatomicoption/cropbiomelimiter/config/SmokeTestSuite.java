@@ -6,6 +6,7 @@ import rocks.theatomicoption.cropbiomelimiter.events.PlayerActionHandlerSmokeTes
 import rocks.theatomicoption.cropbiomelimiter.logic.NaturalGrowthResultDetectorSmokeTest;
 import rocks.theatomicoption.cropbiomelimiter.viewer.ViewerAtlasSmokeTest;
 import rocks.theatomicoption.cropbiomelimiter.viewer.ViewerIntegrationMetadataSmokeTest;
+import rocks.theatomicoption.cropbiomelimiter.viewer.client.ClientAtlasDataSmokeTest;
 import rocks.theatomicoption.cropbiomelimiter.worldgen.VanillaWorldgenCosmeticDefaultsSmokeTest;
 import rocks.theatomicoption.cropbiomelimiter.worldgen.VillageFarmProcessorListsSmokeTest;
 
@@ -26,6 +27,7 @@ public final class SmokeTestSuite {
 		CoreBehaviorSmokeTest.run();
 		NaturalGrowthResultDetectorSmokeTest.run();
 		ViewerAtlasSmokeTest.run();
+		ClientAtlasDataSmokeTest.run();
 		ViewerIntegrationMetadataSmokeTest.run();
 		VillageFarmProcessorListsSmokeTest.run();
 		VanillaWorldgenCosmeticDefaultsSmokeTest.run();
